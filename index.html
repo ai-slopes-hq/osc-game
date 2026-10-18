@@ -386,7 +386,7 @@ body.desk .mbtns button:hover{opacity:1}
       intro: [
         ['seq', 'Восемь шагов. Каждый мой. Ты будешь играть то, что я запрограммировал.'],
         ['sine', 'А если я перепрограммирую?'],
-        ['seq', 'Попробуй хотя бы попасть в такт. Промахнёшься — сдвину весь узор.'],
+        ['seq', 'Попробуй хотя бы попасть в такт. Прыгнешь на пустой шаг — отберу взятый и сдвину узор. И я буду ускоряться.'],
       ],
       outro: [
         ['seq', 'Шаги… теперь… твои…'],
@@ -403,7 +403,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['mq', 'А квадратом я наконец работаю. Duty cycle, PWM, всё по-взрослому.'],
         ['sine', 'Но ты же живой. Тёплый.'],
         ['mq', 'В природе нет квадратов, Синус. И мне там нет места. Хочешь меня вернуть — раскачай мой ШИМ, пока скважность не вылетит за край.'],
-        ['mq', 'Видишь мои импульсы? Прыгай по ним — каждый, что обрушишь, расширит скважность. Стоишь на земле — я успокаиваюсь.'],
+        ['mq', 'Видишь мои импульсы? Прыгай по зелёным — каждый расширит скважность. Красные перевёрнуты, они меня успокоят. А последнюю четверть — только серией, не касаясь земли.'],
       ],
       outro: [
         ['mdr', 'Углы… снова круглые. И опять я падаю.'],
@@ -561,7 +561,7 @@ body.desk .mbtns button:hover{opacity:1}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
+  let music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -578,6 +578,9 @@ body.desk .mbtns button:hover{opacity:1}
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
     master = ac.createGain(); master.gain.value = muted ? 0 : .55;
     master.connect(comp); comp.connect(ac.destination);
+    // all music goes through one low-pass, so long events can close or open the whole mix (SFX bypass it)
+    music = ac.createGain(); musicLP = ac.createBiquadFilter(); musicLP.type = 'lowpass'; musicLP.frequency.value = 18000; musicLP.Q.value = .9;
+    music.connect(musicLP); musicLP.connect(master);
     osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = 220;
     fmOsc = ac.createOscillator(); fmOsc.frequency.value = 440;
     fmGain = ac.createGain(); fmGain.gain.value = 0;
@@ -602,17 +605,17 @@ body.desk .mbtns button:hover{opacity:1}
     // chiptune bus for the Биткрашер fight: every voice goes through a quantiser set to the boss's bit depth
     chipBus = ac.createGain(); chipSh = ac.createWaveShaper();
     const chipOut = ac.createGain(); chipOut.gain.value = .26;
-    chipBus.connect(chipSh); chipSh.connect(chipOut); chipOut.connect(master);
+    chipBus.connect(chipSh); chipSh.connect(chipOut); chipOut.connect(music);
     crushSh = ac.createWaveShaper(); setCrushBits(16);
-    env.connect(crushSh); crushSh.connect(ringG); ringG.connect(lp); lp.connect(master);
+    env.connect(crushSh); crushSh.connect(ringG); ringG.connect(lp); lp.connect(music);
     const delay = ac.createDelay(1); delay.delayTime.value = .27;
     const fb = ac.createGain(); fb.gain.value = .38;
     wet = ac.createGain(); wet.gain.value = 0;
-    lp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(master);
+    lp.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(music);
     bass = ac.createOscillator(); bass.type = 'triangle';
     const blp = ac.createBiquadFilter(); blp.type = 'lowpass'; blp.frequency.value = 700;
     bassEnv = ac.createGain(); bassEnv.gain.value = 0;
-    bass.connect(blp); blp.connect(bassEnv); bassEnv.connect(master);
+    bass.connect(blp); blp.connect(bassEnv); bassEnv.connect(music);
     // wobble bass for the Wavetable fight: saw + square → resonant low-pass swept by a tempo-synced LFO → drive
     dubA = ac.createOscillator(); dubA.type = 'sawtooth'; dubA.frequency.value = 55;
     dubB = ac.createOscillator(); dubB.type = 'square'; dubB.frequency.value = 55; dubB.detune.value = 9;
@@ -625,7 +628,7 @@ body.desk .mbtns button:hover{opacity:1}
     dubSh.curve = dc;
     dubG = ac.createGain(); dubG.gain.value = 0;
     const dubMix = ac.createGain(); dubMix.gain.value = .5;
-    dubBG = ac.createGain(); dubB.connect(dubBG); dubA.connect(dubMix); dubBG.connect(dubMix); dubMix.connect(dubF); dubF.connect(dubSh); dubSh.connect(dubG); dubG.connect(master);
+    dubBG = ac.createGain(); dubB.connect(dubBG); dubA.connect(dubMix); dubBG.connect(dubMix); dubMix.connect(dubF); dubF.connect(dubSh); dubSh.connect(dubG); dubG.connect(music);
     dubA.start(); dubB.start(); dubLfo.start();
     // battle FM for the Wavetable fight: an inharmonic modulator on the wobble bass, plus a noise bed for the last cells
     dubFmOsc = ac.createOscillator(); dubFmOsc.frequency.value = 78; dubFmG = ac.createGain(); dubFmG.gain.value = 0;
@@ -635,7 +638,7 @@ body.desk .mbtns button:hover{opacity:1}
     const nsrc = ac.createBufferSource(); nsrc.buffer = nb; nsrc.loop = true;
     const nf = ac.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 2600; nf.Q.value = .5;
     noiseBedG = ac.createGain(); noiseBedG.gain.value = 0;
-    nsrc.connect(nf); nf.connect(noiseBedG); noiseBedG.connect(master); nsrc.start();
+    nsrc.connect(nf); nf.connect(noiseBedG); noiseBedG.connect(music); nsrc.start();
     // synthwave for the Квадрат fight: pulse voices made the analog way (saw minus a delayed saw),
     // the delay sets the duty cycle and a slow LFO sweeps it — PWM
     pwmLfo = ac.createOscillator(); pwmLfo.frequency.value = .55; pwmLfo.start();
@@ -643,15 +646,15 @@ body.desk .mbtns button:hover{opacity:1}
     const bHP = ac.createBiquadFilter(); bHP.type = 'highpass'; bHP.frequency.value = 35;
     pbG = ac.createGain(); pbG.gain.value = 0;
     swBF = bF;
-    pwmBass = makePWM(bF); bF.connect(pbG); pbG.connect(bHP); bHP.connect(master);
+    pwmBass = makePWM(bF); bF.connect(pbG); pbG.connect(bHP); bHP.connect(music);
     const pF = ac.createBiquadFilter(); pF.type = 'lowpass'; pF.frequency.value = 2400;
     const pHP = ac.createBiquadFilter(); pHP.type = 'highpass'; pHP.frequency.value = 80;
     padG = ac.createGain(); padG.gain.value = 0;
     for (let i = 0; i < 3; i++) pwmPad.push(makePWM(pF));
     swPF = pF;
-    pF.connect(padG); padG.connect(pHP); pHP.connect(master);
+    pF.connect(padG); padG.connect(pHP); pHP.connect(music);
     // level band: pads, drum kit and bass parts go through one bus, so trance/modern can pump it from the kick
-    padBus = ac.createGain(); padBus.gain.value = 1; padBus.connect(master);
+    padBus = ac.createGain(); padBus.gain.value = 1; padBus.connect(music);
     osc.start(); fmOsc.start(); bass.start();
     setInterval(schedule, 20);
   }
@@ -696,7 +699,7 @@ body.desk .mbtns button:hover{opacity:1}
     env.gain.setTargetAtTime(peak, t, .004);
     env.gain.setTargetAtTime(.05, t + .02, d * .45);
   }
-  function fmVoice(t, f, ratio, index, dur, vol, idxDur, type = 'sine', hp = 0) {
+  function fmVoice(t, f, ratio, index, dur, vol, idxDur, type = 'sine', hp = 0, dest = null) {
     const car = ac.createOscillator(), mod = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
     car.type = type; car.frequency.setValueAtTime(f, t); mod.frequency.setValueAtTime(f * ratio, t);
     mg.gain.setValueAtTime(f * index, t); mg.gain.exponentialRampToValueAtTime(f * .01 + .01, t + idxDur);
@@ -704,7 +707,7 @@ body.desk .mbtns button:hover{opacity:1}
     mod.connect(mg); mg.connect(car.frequency);
     let out = car;
     if (hp) { const f2 = ac.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = hp; car.connect(f2); out = f2; }
-    out.connect(g); g.connect(master);
+    out.connect(g); g.connect(dest || music);
     car.start(t); mod.start(t); car.stop(t + dur + .05); mod.stop(t + dur + .05);
     return car;
   }
@@ -713,7 +716,7 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
     const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
     src.buffer = buf; f.type = fType; f.frequency.value = f0; g.gain.value = vol;
-    src.connect(f); f.connect(g); g.connect(master); src.start(t);
+    src.connect(f); f.connect(g); g.connect(music); src.start(t);
   }
   function drums(n, t) {
     const s = n % 16;
@@ -738,7 +741,7 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 0; i < d.length; i++) { const u = i / d.length; d[i] = (Math.random() * 2 - 1) * (u < .82 ? 1 - u * .35 : 0); }
     const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
     src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 1900; f.Q.value = .7; g.gain.value = .5;
-    src.connect(f); f.connect(g); g.connect(master); src.start(t);
+    src.connect(f); f.connect(g); g.connect(music); src.start(t);
     fmVoice(t, 195, 1.5, 3, .16, .16, .06);
   }
   function chipVoice(t, semi, type, vol, dur) {
@@ -854,7 +857,7 @@ body.desk .mbtns button:hover{opacity:1}
     const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
     o.type = type; o.frequency.setValueAtTime(hz(semi), t); f.type = 'lowpass'; f.frequency.value = lpF;
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05);
+    o.connect(f); f.connect(g); g.connect(music); o.start(t); o.stop(t + dur + .05);
   }
   function orchestra(n, t, c, sc) {
     const s = n % 16, bar = Math.floor(n / 16);
@@ -899,8 +902,8 @@ body.desk .mbtns button:hover{opacity:1}
     }
     const dance = boss && boss.B.kind === 'chords' && !boss.dead && boss.t > 1;
     const dub = boss && boss.B.kind === 'harm' && !boss.dead && boss.t > 1;
-    if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % 4 === 0) { // the sequencer plays its own steps
-      const i = (n / 4) % 8;
+    if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % (4 / boss.rate) === 0) { // the sequencer plays its own steps
+      const i = (n / (4 / boss.rate)) % boss.N;
       if (boss.active.includes(i)) {
         const sm = c.t[i % c.t.length] + 12;
         if (boss.captured.includes(i)) fmVoice(t, hz(sm + 12), 1, .01, .3, .1, .2);
@@ -971,10 +974,25 @@ body.desk .mbtns button:hover{opacity:1}
   function setRect(on) { if (!ac) return; const t = ac.currentTime; dryG.gain.setTargetAtTime(on ? 0 : 1, t, .02); rectG.gain.setTargetAtTime(on ? .9 : 0, t, .02); }
   function setRing(on) { if (!ac) return; const t = ac.currentTime; ringG.gain.setTargetAtTime(on ? 0 : 1, t, .02); ringDepth.gain.setTargetAtTime(on ? 1.3 : 0, t, .02); }
   function setBossMusic(on) { bossMusic = on; if (ac) bass.type = on ? 'sawtooth' : 'triangle'; }
+  // Long events animate the music low-pass: a level fades in from a closed filter, the boss gate and a boss's
+  // defeat sweep it open, dialogue and pauses muffle it, a hit dips it and lets it recover with the invulnerability.
+  const startSweep = (from, dur) => { lpSweep = { t: 0, from, dur }; };
+  function musicFilter(dt) {
+    if (!ac || !musicLP) return;
+    let f = 18000;
+    if (state === 'story' && !(storyQ && storyQ.scene)) f = 1500;
+    if (state === 'paused') f = 380;
+    if (state === 'dying' || state === 'over') f = 280;
+    if (state === 'play' && slow < 1) f = Math.min(f, lerp(600, 18000, slow * slow));
+    if (state === 'play' && invulnT > 0) f = Math.min(f, lerp(18000, 650, invulnT / 1.6));
+    if (lpSweep) { lpSweep.t += dt; const u = Math.min(1, lpSweep.t / lpSweep.dur); f = Math.min(f, lpSweep.from * Math.pow(18000 / lpSweep.from, u * u)); if (u >= 1) lpSweep = null; }
+    if (Math.abs(f - lpNow) / lpNow > .03) { lpNow = f; musicLP.frequency.setTargetAtTime(f, ac.currentTime, .06); }
+  }
   function startMusic() {
     if (!ac) return;
     playing = true; stepN = 0; noteLog = []; nextT = ac.currentTime + .05; musicMode = curMode; barBase = 0;
     padBus.gain.cancelScheduledValues(ac.currentTime); padBus.gain.setTargetAtTime(1, ac.currentTime, .02);
+    startSweep(450, 3.5); // each run fades in through the filter
     osc.frequency.cancelScheduledValues(ac.currentTime); fmOsc.frequency.cancelScheduledValues(ac.currentTime);
   }
   function stopMusic() {
@@ -1099,6 +1117,7 @@ body.desk .mbtns button:hover{opacity:1}
       case 'spike': Object.assign(o, { w: R(26, 34), h: R(36, 48), label: 'δ(x)', samples: 40, prof: u => 1 - Math.abs(2 * u - 1) }); break;
       case 'gauss': Object.assign(o, { w: R(70, 100), h: R(46, 70), label: 'y = e^(−x²)', prof: u => Math.exp(-Math.pow((u - .5) * 5, 2)) }); break;
       // effect gates: not lethal, they change the signal for a while. Jump over to avoid.
+      case 'gnote': Object.assign(o, { w: 18, h: R(22, 30), label: 'gate', hint: '↑ нота-гейт: перепрыгни', prof: u => edge(u, .12) }); break;
       case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ выпрямитель: перепрыгни', prof: () => 1 }); break;
       case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ кольцевой: перепрыгни', prof: () => 1 }); break;
       case 'pi': Object.assign(o, { w: R(24, 34), h: R(110, 128), tall: true, label: 'y = Π(x)', prof: u => edge(u, .1) }); break;
@@ -1188,7 +1207,7 @@ body.desk .mbtns button:hover{opacity:1}
       // not enough partials yet: the level keeps going, with more of them about
     }
     const prog = (nextX - levelStart) / (isFinite(len) ? len : 20000);
-    const dd = clamp(level * .17 + (nextX - levelStart) / 14000, 0, 1);
+    const dd = gated() ? clamp(level * .15 + clamp(levelPartials / NEED[level], 0, 1) * .6, 0, 1) : clamp(level * .17 + (nextX - levelStart) / 14000, 0, 1);
     let kind;
     if (levelSpawn < L.intro.length) kind = L.intro[levelSpawn];
     else {
@@ -1246,12 +1265,12 @@ body.desk .mbtns button:hover{opacity:1}
     if (!B.partialDmg) pickups = [];
     bossCheckpoint = level; bossStartPts = pts; bossStartPartials = partials;
     if (B.ally) ally = { t: 2.5, x: 20 };
-    setBossMusic(true);
+    setBossMusic(true); startSweep(500, 2.2);
     banner = { t: 0, l1: CAST[B.who].name, l2: B.tip, red: true };
     bitTokens = [];
     if (B.kind === 'crush') setCrushBits(8);
     if (B.kind === 'harm') { harmTokens = []; shots = []; boss.shotT = 2; boss.lastShot = 'green'; setDubLayers(8); }
-    if (B.kind === 'seq') { const idx = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - .5).slice(0, 5).sort((a, b) => a - b); boss.active = idx; }
+    if (B.kind === 'seq') seqRound(boss, 0);
   }
   function bossAttack() {
     const B = boss.B, k = B.atk(boss.hp), wx = dist + boss.x - 20;
@@ -1267,7 +1286,7 @@ body.desk .mbtns button:hover{opacity:1}
     if (src !== 'fm') sfxBossHit();
     if (boss.key === 'wt') setDubLayers(boss.hp);
     if (boss.hp <= 0) {
-      boss.dead = true; boss.deadT = 0; sfxBossDie(); setBossMusic(false); setBattleFM(0);
+      boss.dead = true; boss.deadT = 0; sfxBossDie(); startSweep(320, 3); setBossMusic(false); setBattleFM(0);
       for (const o of obstacles) if (o.enemy && !o.broken) { o.broken = true; o.bt = 0; }
       platforms = platforms.filter(p => p === standing); idxTokens = []; bitTokens = []; harmTokens = []; shots = []; setCrushBits(16);
       if (!reduced) shake = .4;
@@ -1425,11 +1444,16 @@ body.desk .mbtns button:hover{opacity:1}
   // --- Квадрат: green pulse platforms stream in. Every one you land on collapses under you and pushes his duty cycle
   //     wider; chaining them without touching the ground pushes harder. Standing on the ground lets him settle back
   //     towards a tidy 50%. Push the duty to 100% and the square becomes plain DC — Меандр is free.
-  const SQ_STEP = .06, SQ_CHAIN = .025, SQ_RELAX = .045, SQ_WIN = .97;
+  const SQ_STEP = .06, SQ_CHAIN = .025, SQ_RELAX = .06, SQ_AIR = .022, SQ_FINAL = .75, SQ_WIN = .97;
   function updatePwm(dt) {
     const b = boss;
     b.duty = clamp(b.base + .03 * Math.sin(b.t * 3.1), .02, .99); // a living PWM, never quite still
-    if (onGround && !standing) { b.base = Math.max(.5, b.base - SQ_RELAX * dt); b.chain = 0; }
+    const grounded = onGround && !standing;
+    if (grounded && b.base > SQ_FINAL + .001) { // the last stretch only counts as one unbroken chain
+      b.base = SQ_FINAL; b.chain = 0; toast = { t: 0, text: 'серия прервана · 75%', color: COL.red }; tones([7, 0], 'square', .05, .05, .15);
+    }
+    if (grounded) b.chain = 0;
+    if (b.base < SQ_FINAL || grounded) b.base = Math.max(.5, b.base - (grounded ? SQ_RELAX : SQ_AIR) * dt); // he always pulls back
     trackSquare(dt);
     if (b.base >= SQ_WIN) {
       toast = { t: 0, text: '100% · ПОСТОЯННЫЙ ТОК', color: COL.mdr };
@@ -1440,16 +1464,17 @@ body.desk .mbtns button:hover{opacity:1}
     for (const pf of platforms) {
       if (pf.kind !== 'pulse' || pf.fallT < 0) continue;
       pf.fallT += dt;
-      if (pf.fallT < .3) continue;                      // a short wobble before it gives way
+      if (pf.fallT < (b.base >= SQ_FINAL ? .5 : .3)) continue; // a short wobble before it gives way (longer in the finale)
       pf.fallV += 900 * dt; pf.h -= pf.fallV * dt;
       if (pf.h <= 0) { pf.gone = true; if (standing === pf) { standing = null; y = 0; } }
     }
     b.pfT -= dt;
     if (b.pfT <= 0) {
-      const h = pick([28, 46, 64].filter(v => v !== b.lastH));
+      const h = pick([28, 46, 64].filter(v => v !== b.lastH)), k = clamp((b.base - .5) / (SQ_WIN - .5), 0, 1);
       b.lastH = h;
-      platforms.push({ kind: 'pulse', x: dist + WORLD_W + 30, w: 58, h, fallT: -1, fallV: 0 });
-      b.pfT = R(150, 205) / speed;
+      const trap = k > .15 && !b.lastTrap && Math.random() < .28; b.lastTrap = trap; // never two traps in a row
+      platforms.push({ kind: 'pulse', trap, x: dist + WORLD_W + 30, w: lerp(58, 24, k), h, fallT: -1, fallV: 0 }); // pulses narrow as his duty grows
+      b.pfT = (b.base >= SQ_FINAL ? R(105, 140) : R(150, 205)) / speed; // the finale lays them closer for a chain
     }
   }
   // --- Биткрашер: it has squeezed everything to 8 bits — the screen goes blocky, the arp goes gritty.
@@ -1482,39 +1507,67 @@ body.desk .mbtns button:hover{opacity:1}
 
   // --- Секвенсор: 8 steps, a playhead on the beat. Jump while the playhead is on a lit step to take that step.
   //     Take every lit step and the sequence is yours. A jump off the beat gives one back.
+  // Three rounds, each faster: 8 steps on quarters, 8 on eighths, then 16 on eighths with the lit steps on the off-beats.
+  // A jump counts only near the start of a step. On a lit step: yours. On a dark step: a miss — you lose the last
+  // step you took and the pattern shifts. A jump between steps is free, and so is one made to clear a gate note.
+  const SEQ_ROUNDS = [{ rate: 1, N: 8, act: 5 }, { rate: 2, N: 8, act: 5 }, { rate: 2, N: 16, act: 6, sync: true }];
+  function seqRound(b, r) {
+    const R = SEQ_ROUNDS[r], all = [...Array(R.N).keys()].sort(() => Math.random() - .5);
+    const pool = R.sync ? all.filter(i => i % 2).concat(all.filter(i => i % 2 === 0)) : all; // off-beats first
+    Object.assign(b, { round: r, rate: R.rate, N: R.N, captured: [], flash: Array(R.N).fill(0), active: pool.slice(0, R.act).sort((x, y) => x - y), noteT: 2.5 });
+  }
   function updateSeq(dt) {
     const b = boss;
-    for (let i = 0; i < 8; i++) b.flash[i] = Math.max(0, b.flash[i] - dt * 3);
+    for (let i = 0; i < b.N; i++) b.flash[i] = Math.max(0, b.flash[i] - dt * 3);
+    if (b.round >= 1) { // gate notes slide in along the ground: jump them
+      b.noteT -= dt;
+      if (b.noteT <= 0) {
+        const o = makeOb('gnote', dist + WORLD_W + 30); o.enemy = true; o.vx = 60; tagHint(o); obstacles.push(o);
+        b.noteT = b.round === 1 ? R(2.4, 3.6) : R(1.7, 2.7);
+      }
+    }
   }
+  const seqDodging = () => obstacles.some(o => o.enemy && !o.broken && o.x - dist > HERO_X - 30 && o.x - dist < HERO_X + HERO_W + 110);
   function seqJudge() {
     const b = boss; if (!b || b.dead || b.t < 1.4) return;
-    const base = Math.floor(beatPos), fr = beatPos - base, cands = [base];
-    if (fr > .72) cands.push(base + 1);
-    if (fr < .25) cands.push(base - 1);
-    const st = c => ((c % 8) + 8) % 8;
-    const hit = cands.map(st).find(i => b.active.includes(i) && !b.captured.includes(i));
-    if (hit !== undefined) {
-      b.captured.push(hit); b.flash[hit] = 1; boss.hitT = .15;
-      tones([LEVELS[level].prog[0].t[hit % 3] + 12, LEVELS[level].prog[0].t[hit % 3] + 24], 'sine', .02, .12, .35);
+    const pos = beatPos * b.rate, near = Math.round(pos), stepSec = 60 / bpmNow() / b.rate;
+    if (Math.abs(pos - near) * stepSec > Math.min(.1, stepSec * .32)) return; // between steps: a free jump
+    const i = ((near % b.N) + b.N) % b.N;
+    if (b.active.includes(i) && !b.captured.includes(i)) {
+      b.captured.push(i); b.flash[i] = 1; b.hitT = .15;
+      const sm = LEVELS[level].prog[0].t[i % 3]; tones([sm + 12, sm + 24], 'sine', .02, .12, .35);
       toast = { t: 0, text: `шаг ${b.captured.length}/${b.active.length}`, color: COL.ch1 };
-      if (b.captured.length >= b.active.length) hitBoss(1, 'seq');
-    } else if (cands.map(st).some(i => b.active.includes(i))) {
+      if (b.captured.length >= b.active.length) {
+        if (b.round < SEQ_ROUNDS.length - 1) {
+          seqRound(b, b.round + 1); sfxLevel(); buzz([20, 30, 20]);
+          showPop(`РАУНД ${b.round + 1}`, COL.red, 2);
+          toast = { t: 0, text: b.round === 1 ? 'вдвое быстрее' : '16 шагов · синкопы', color: COL.red };
+        } else hitBoss(1, 'seq');
+      }
+    } else if (b.active.includes(i)) {
       // on a step you already own: nothing happens
-    } else {
-      const sh = pick([1, 2, 3, -1, -2, -3]), rot = i => ((i + sh) % 8 + 8) % 8;
+    } else if (!seqDodging()) {
+      const lost = b.captured.pop();
+      const sh = pick([1, 2, 3, -1, -2, -3]), rot = k => ((k + sh) % b.N + b.N) % b.N;
       b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
-      b.flash = b.flash.map(() => .8); boss.hitT = .2;
+      b.flash = b.flash.map(() => .8); b.hitT = .2;
       tones([-1, -6], 'square', .05, .06, .2); noise(.12, 'highpass', 2000, 5000, .2);
-      toast = { t: 0, text: `мимо · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}`, color: COL.red };
+      toast = { t: 0, text: lost !== undefined ? `мимо · −1 шаг · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}` : `мимо · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}`, color: COL.red };
     }
   }
   function landOn(pf) {
     if (!boss || boss.dead || pf.used) return;
     if (pf.kind === 'pulse') {
       pf.used = true; pf.fallT = 0;
-      const b = boss; b.chain++;
-      const gain = SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
-      b.base = Math.min(1, b.base + gain); b.hitT = .2;
+      const b = boss;
+      if (pf.trap) { // an inverted pulse: it knocks his duty back
+        b.base = Math.max(.5, Math.min(b.base, SQ_FINAL) - .1); b.chain = 0; b.hitT = .2;
+        tones([0, -5], 'square', .06, .05, .2); showPop('−10%', COL.red, 2); toast = { t: 0, text: 'инвертированный импульс', color: COL.red };
+        return;
+      }
+      b.chain++;
+      const gain = b.base >= SQ_FINAL ? (SQ_WIN - SQ_FINAL) / 3 + .002 : SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
+      b.base = Math.min(1, b.base < SQ_FINAL ? Math.min(SQ_FINAL, b.base + gain) : b.base + gain); b.hitT = .2; // below 75% gains stop at 75%
       tones([24, 31].map(x => x + Math.round((b.base - .5) * 14)), 'square', .05, .06, .18);
       toast = { t: 0, text: b.chain > 1 ? `+${Math.round(gain * 100)}% · СЕРИЯ ×${b.chain}` : `+${Math.round(gain * 100)}%`, color: COL.ch4 };
       return;
@@ -1689,7 +1742,7 @@ body.desk .mbtns button:hover{opacity:1}
     if (level > unlocked) { unlocked = level; store.set('osc-adv-unlocked', unlocked); }
     levelStart = dist; marker = null; levelSpawn = 0; levelPartials = START_PARTIALS; gateWarned = false; gateOpenSaid = false;
     levelStartPts = pts; levelStartPartials = partials;
-    speed = LEVELS[level].speed0; curMode = level;
+    speed = LEVELS[level].speed0; curMode = level; startSweep(450, 3);
     nextX = dist + WORLD_W + 60;
     banner = { t: 0, l1: `Уровень ${level + 1}`, l2: LEVELS[level].name };
     sfxLevel();
@@ -1990,7 +2043,10 @@ body.desk .mbtns button:hover{opacity:1}
 
     if (state === 'play') {
       if (power) { power.t += dt; if (power.t >= power.dur) endPower(); }
-      speed = Math.min(SPEED_MAX, speed + (boss ? 0 : ACCEL) * dt);
+      if (gated() && !bossPending) { // closer to the gate = faster; losing partials eases you back down
+        const L = LEVELS[level], tgt = lerp(L.speed0, Math.min(SPEED_MAX, L.speed0 + 140), clamp(levelPartials / NEED[level], 0, 1));
+        speed += (tgt - speed) * (1 - Math.exp(-dt * .7));
+      } else speed = Math.min(SPEED_MAX, speed + (boss ? 0 : ACCEL) * dt);
       dist += speed * dt; pts += speed * dt / 48;
       buffer -= dt;
       invulnT = Math.max(0, invulnT - dt);
@@ -2067,7 +2123,7 @@ body.desk .mbtns button:hover{opacity:1}
           if (gated()) {
             const rem = NEED[level] - levelPartials;
             if (rem > 0) showPop(rem <= 3 ? `ЕЩЁ ${rem}` : `${levelPartials}/${NEED[level]}`, COL.ch4);
-            else if (rem === 0) showPop(`БОСС: ${CAST[BOSSES[LEVELS[level].boss].who].name.toUpperCase()}`, COL.ch1);
+            else if (rem === 0) startSweep(600, 2.8), showPop(`БОСС: ${CAST[BOSSES[LEVELS[level].boss].who].name.toUpperCase()}`, COL.ch1);
           } else showPop(`◎ ${levelPartials}`, COL.ch4);
           if (!boss && !victoryRun) {
             const L = LEVELS[level];
@@ -2219,8 +2275,9 @@ body.desk .mbtns button:hover{opacity:1}
       }
       trace(q, col, 2.2, alpha);
     } else if (b.key === 'seq') {
-      const cwid = 15, gap = 4, tw = 8 * cwid + 7 * gap, sx = b.x - tw / 2, cur = ((Math.floor(beatPos) % 8) + 8) % 8;
-      for (let i = 0; i < 8; i++) {
+      const N = b.N || 8, cwid = N > 8 ? 8 : 15, gap = N > 8 ? 2 : 4, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
+      const cur = ((Math.floor(beatPos * (b.rate || 1) + .5) % N) + N) % N; // the step whose window is open now
+      for (let i = 0; i < N; i++) {
         const xx = sx + i * (cwid + gap), on = b.active.includes(i), mine = b.captured.includes(i);
         const q = [xx, by - 10, xx + cwid, by - 10, xx + cwid, by + 10, xx, by + 10, xx, by - 10];
         const c = b.dead || mine ? COL.ch1 : on ? COL.red : 'rgba(255,77,61,.35)';
@@ -2281,7 +2338,7 @@ body.desk .mbtns button:hover{opacity:1}
   function keyClick(who) {
     const c = CAST[who]; if (!c || !ac) return;
     // a key: a short bright tick plus the speaker's own pitch, an octave above the arp so the music can't hide it
-    noiseAt(ac.currentTime, .012, 'highpass', 4200, .16);
+    noise(.012, 'highpass', 4200, 4200, .16);
     tones([(c.pitch ?? 12) + 12 + (Math.random() < .5 ? 0 : 2)], c.digital ? 'square' : c.nar ? 'sine' : 'triangle', 0, c.digital ? .05 : .07, .04);
   }
   function drawSprite(who, x, cy, w, amp, tnow, opt = {}) {
@@ -2573,11 +2630,14 @@ body.desk .mbtns button:hover{opacity:1}
   function progressNow() {
     if (boss && !boss.dead) {
       const b = boss, k = b.B.kind;
-      const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? b.captured.length / b.active.length
+      const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? (b.round + b.captured.length / b.active.length) / SEQ_ROUNDS.length
         : k === 'harm' ? (8 - b.rem.length) / 8 : 1 - b.hp / b.max;
       return [clamp(f, 0, 1), COL.ch1];
     }
-    if (gated() && !bossPending) return [clamp(levelPartials / NEED[level], 0, 1), COL.ch4];
+    if (gated() && !bossPending) {
+      const rem = NEED[level] - levelPartials, blink = rem > 0 && rem < 4 && Math.floor(performance.now() / 170) % 2;
+      return [clamp(levelPartials / NEED[level], 0, 1), blink ? COL.ch1 : COL.ch4];
+    }
     return null;
   }
   function drawProgressBar(dt) {
@@ -2742,8 +2802,9 @@ body.desk .mbtns button:hover{opacity:1}
         text(pf.chord, px + pf.w / 2, py - 10, c, 'center', fontPx() + (target ? 3 : 1), 700);
       } else if (pf.kind === 'pulse') {
         const wob = pf.fallT >= 0 && pf.fallT < .3 ? R(-1, 1) : 0, xx = px + wob;
-        const c = pf.used ? 'rgba(255,77,61,.6)' : COL.ch4, q = [xx, py + 11, xx, py, xx + pf.w, py, xx + pf.w, py + 11];
-        if (!pf.used) fillPoly([xx, py, xx + pf.w, py, xx + pf.w, py + 11, xx, py + 11], COL.ch4, .14);
+        const c = pf.trap ? COL.red : pf.used ? 'rgba(255,77,61,.6)' : COL.ch4;
+        const q = pf.trap ? [xx, py, xx, py + 11, xx + pf.w, py + 11, xx + pf.w, py] : [xx, py + 11, xx, py, xx + pf.w, py, xx + pf.w, py + 11]; // traps hang upside down
+        if (!pf.used) fillPoly([xx, py, xx + pf.w, py, xx + pf.w, py + 11, xx, py + 11], pf.trap ? COL.red : COL.ch4, .14);
         trace(q, c, pf.used ? 1.2 : 2, pf.used ? .6 : 1); // one square pulse: up, across, down
       } else {
         const lit = fmLit(pf), c = COL.math, q = [px, py, px + pf.w, py, px + pf.w, py + 9, px, py + 9, px, py];
@@ -2880,14 +2941,14 @@ body.desk .mbtns button:hover{opacity:1}
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2 - 8, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
-      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, 'метка на красном — прыгай', COL.red, boss.captured.length / boss.active.length);
+      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, `раунд ${boss.round + 1}/3 · прыгай на красный шаг`, COL.red, boss.captured.length / boss.active.length);
     if (boss && boss.B.kind === 'chords' && !boss.dead && !storyQ) {
       if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
       else bossCallout('ЩИТ', 'жди аккорд', COL.red);
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1 · не бери 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
-      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.chain > 1 ? `серия ×${boss.chain}` : 'прыгай по зелёным', COL.red, (boss.base - .5) / (SQ_WIN - .5));
+      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.base >= SQ_FINAL ? `финал: серия ×${boss.chain}/3 без земли` : boss.chain > 1 ? `серия ×${boss.chain}` : 'зелёные — да, красные — нет', COL.red, (boss.base - .5) / (SQ_WIN - .5));
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
       const nx = harmNext(), yy = bossCallout(`СНИМИ h${nx}`, 'зелёные лови · красные мимо', COL.ch4) - fp * .4;
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3007,6 +3068,7 @@ body.desk .mbtns button:hover{opacity:1}
         if (k % 2 === 0 && /[^\s.,!?…—–:;«»()-]/.test(line[1][k])) keyClick(line[0]); // a key click every other letter
       }
     } else if (state !== 'paused') { tutTick(dt); update(dt * slow); }
+    musicFilter(dt);
     render(state === 'paused' ? .0001 : dt);
     postFx();
     hud();
