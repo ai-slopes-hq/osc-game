@@ -694,6 +694,40 @@ body.desk .mbtns button:hover{opacity:1}
     swBF.frequency.setTargetAtTime(1100 + k * 3200, t, .1); swBF.Q.value = 3 + k * 6;
     swPF.frequency.setTargetAtTime(2400 + k * 5000, t, .1);
   }
+  // ---------- melodies: one 4-bar phrase per mode, in scale degrees, written against each mode's chords ----------
+  // "deg:len" (len in 16ths), "-:len" is a rest, "|" separates bars. Degrees count up the mode's scale from its tonic.
+  const MEL_SRC = [
+    '7:3 6:1 7:2 4:2 -:2 4:2 5:2 4:2 | 5:4 4:2 2:2 0:4 -:4 | 2:3 1:1 2:2 4:2 -:2 6:2 7:2 6:2 | 6:4 4:2 3:2 1:6 -:2',            // A Aeolian · synth-pop hook
+    '0:2 2:2 4:2 6:2 4:2 2:2 3:2 4:2 | 5:4 4:2 3:2 0:6 -:2 | 4:2 6:2 8:2 7:2 6:2 4:2 6:4 | 6:4 8:2 6:2 3:6 -:2',              // D Dorian · bouncy, chip-ish
+    '7:6 8:2 7:4 4:4 | 5:6 3:2 1:8 | 9:6 8:2 7:4 4:4 | 6:8 3:4 1:4',                                                          // E Phrygian · long trance lead
+    '4:1 -:1 4:1 -:1 6:2 4:2 -:2 7:1 -:1 9:2 -:2 | 8:2 -:2 5:1 -:1 3:2 1:4 -:4 | 2:1 -:1 4:1 -:1 6:2 7:2 -:2 9:1 -:1 11:2 -:2 | 6:4 5:2 3:2 1:6 -:2', // F Lydian · staccato, glitchy
+    '6:4 4:2 2:2 4:8 | 5:4 3:2 1:2 3:6 -:2 | 8:4 6:2 4:2 6:8 | 9:4 7:2 5:2 3:6 -:2',                                         // C whole-tone · floating
+    '0:2 2:2 4:4 7:4 6:2 4:2 | 5:4 7:2 9:2 7:6 -:2 | 3:2 5:2 7:4 10:4 9:2 7:2 | 4:4 6:4 8:4 4:4',                              // C Ionian
+    '0:2 2:2 4:2 7:2 6:4 4:4 | 6:4 5:2 3:2 1:6 -:2 | 3:2 5:2 7:2 10:2 9:4 7:4 | 4:4 6:2 4:2 0:6 -:2',                           // G Mixolydian
+    '0:2 2:2 4:2 7:2 6:4 7:4 | 5:4 3:4 0:4 3:4 | 4:2 6:2 8:2 6:2 4:4 1:4 | 2:4 0:4 4:8',                                       // A harmonic minor
+  ];
+  function parseMel(src) {
+    const out = Array(64).fill(null); let i = 0;
+    for (const tok of src.split(/\s+/)) {
+      if (!tok || tok === '|') continue;
+      const [dg, l] = tok.split(':'), len = +l;
+      if (dg !== '-') for (let k = 0; k < len; k++) out[i + k] = k ? { hold: true, deg: +dg, k, len } : { deg: +dg, len };
+      i += len;
+    }
+    if (i !== 64) console.warn('melody is', i, 'sixteenths, not 64:', src);
+    return out;
+  }
+  const MELS = MEL_SRC.map(parseMel);
+  let lastMel = 0;
+  function degSemi(M, dg) { // scale degree → semitones from A3; the tonic sits between A3 and G4, jumps lift it from there
+    const st = M.steps, len = st.length, o = Math.floor(dg / len), r = ((dg % len) + len) % len, tonic = KEY_SEMI[M.scope[0]] ?? 0;
+    return tonic + 12 * o + st[r];
+  }
+  function melNote(t, dur, peak) { // soft attack, a gentle fall while held, a clean release before the next note
+    env.gain.setTargetAtTime(peak, t, .008);
+    env.gain.setTargetAtTime(peak * .6, t + .05, Math.max(.06, dur * .45));
+    env.gain.setTargetAtTime(0, t + Math.max(.05, dur * .88), .035);
+  }
   // smooth exponential attack/decay from wherever the envelope is: no step, no click (the delay used to echo the clicks)
   function blip(t, peak, d) {
     env.gain.setTargetAtTime(peak, t, .004);
@@ -883,23 +917,17 @@ body.desk .mbtns button:hover{opacity:1}
     if (n % 16 === 0 && musicMode !== curMode) { musicMode = curMode; barBase = Math.floor(n / 16); }
     const L = MODES[musicMode];
     const c = L.prog[(Math.floor(n / 16) - barBase) % L.prog.length];
-    const tn = [...c.t, c.t[0] + 12, c.t[1] + 12];
-    const semi = tn[L.pat[n % 8] % tn.length];
     const d = stepDur();
+    // the Sine sings its mode's melody: phrases with long notes and rests instead of a non-stop arpeggio
+    const ev = MELS[musicMode][((Math.floor(n / 16) - barBase) % 4) * 16 + n % 16];
+    const semi = ev ? degSemi(L, ev.deg) : lastMel;
     noteLog.push({ t, t0: t, semi, n }); if (noteLog.length > 32) noteLog.shift();
-    setFreq(semi + octave, t);
-    env.gain.cancelScheduledValues(t);
-    // boss fights with their own track (Квадрат, Суперпила, Wavetable): the level arp steps aside so the fight IS the music
+    // boss fights with their own track (Квадрат, Суперпила, Wavetable): the Sine steps aside so the fight IS the music
     const bossTrack = boss && !boss.dead && boss.t > 1 && ['pwm', 'chords', 'harm', 'crush'].includes(boss.B.kind);
     const talk = state === 'story' && !(storyQ && storyQ.scene);
-    if (bossTrack) env.gain.setTargetAtTime(0, t, .05);
-    else blip(t, talk ? .1 : .3, d);
-    if (curWave === 'mdr' && !bossTrack) {
-      const s2 = tn[L.pat[(n + 3) % 8] % tn.length], t2 = t + d / 2;
-      noteLog.push({ t: t2, t0: t, semi: s2, n });
-      setFreq(s2 + octave, t2);
-      blip(t2, .26, d / 2);
-    }
+    if (bossTrack) { env.gain.cancelScheduledValues(t); env.gain.setTargetAtTime(0, t, .05); }
+    else if (ev && !ev.hold) { lastMel = semi; setFreq(semi + octave, t); env.gain.cancelScheduledValues(t); melNote(t, ev.len * d, talk ? .08 : .24); }
+    else if (ev && curWave === 'mdr' && ev.k % 2 === 0) { env.gain.cancelScheduledValues(t); melNote(t, (ev.len - ev.k) * d, .2); } // Меандр: the held note stutters in eighths
     const dance = boss && boss.B.kind === 'chords' && !boss.dead && boss.t > 1;
     const dub = boss && boss.B.kind === 'harm' && !boss.dead && boss.t > 1;
     if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % (4 / boss.rate) === 0) { // the sequencer plays its own steps
