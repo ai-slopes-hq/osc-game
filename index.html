@@ -1468,6 +1468,89 @@ body.desk .mbtns button:hover{opacity:1}
     else if (airJumps > 0 && fx.rect <= 0) { noteJumpDir(); vy = DJUMP_V * (triOn() ? 1.05 : 1); airJumps = 0; jumpOct = 24; syncOctave(); flash(); }
     else buffer = .13;
   }
+  // ---------- onboarding ----------
+  // The first ground function, hanging function and tall wall: the run slows to a freeze right where
+  // the move works, a card says what to press, and the press itself does the move. Remembered once done.
+  const tutDone = new Set(store.get('osc-adv-tut', '').split(',').filter(Boolean));
+  let tut = null, slow = 1;
+  const obCat = ob => !ob.ground ? 'ceil' : ob.tall ? 'tall' : 'ground';
+  // gap (front of the hero → start of the obstacle) at which a jump taken now clears it with most room
+  function bestTakeoff(ob, dbl) {
+    const clear = [];
+    for (let g = 0; g <= 320; g += 3) {
+      let yy = 0, v = JUMP_V, t = 0, dj = !dbl, ok = true;
+      while (t < 1.6) {
+        t += 1 / 240; v -= GRAV / 240; yy += v / 240;
+        if (!dj && v <= 150) { v = DJUMP_V; dj = true; }
+        if (yy <= 0) break;
+        const ox = HERO_X + HERO_W + g - speed * t, x0 = HERO_X + 5, x1 = HERO_X + HERO_W - 5;
+        if (ox > x1 || ox + ob.w < x0) continue;
+        for (let sx = Math.max(x0, ox); sx <= Math.min(x1, ox + ob.w); sx += 2) if (yy + 1 < ob.h * ob.prof((sx - ox) / ob.w) - 2) { ok = false; break; }
+        if (!ok) break;
+      }
+      const passed = HERO_X + HERO_W + g - speed * t + ob.w < HERO_X + 5; // landed beyond it, not short of it
+      if (ok && yy <= 0 && passed) clear.push(g);
+    }
+    if (!clear.length) return speed * .2;
+    // the middle of the longest run of clearing gaps
+    let best = [clear[0], clear[0]], cur = [clear[0], clear[0]];
+    for (let i = 1; i < clear.length; i++) {
+      if (clear[i] - clear[i - 1] <= 3) cur[1] = clear[i]; else cur = [clear[i], clear[i]];
+      if (cur[1] - cur[0] > best[1] - best[0]) best = cur.slice();
+    }
+    return (best[0] + best[1]) / 2;
+  }
+  function tutFinish() {
+    tutDone.add(tut.cat); store.set('osc-adv-tut', [...tutDone].join(','));
+    if (tut.cat === 'ceil') toast = { t: 0, text: 'держи, пока не проползёшь', color: COL.ch3 };
+    tones([12, 19, 24], 'sine', .03, .05, .12);
+    tut = null;
+  }
+  function tutTick(dt) {
+    if (state !== 'play' || boss || bossPending || victoryRun || storyQ) { tut = null; slow = 1; return; }
+    if (!tut && tutDone.size < 3) { // the nearest obstacle ahead, if its kind is new
+      const ob = obstacles.find(o => !o.gate && !o.enemy && !o.broken && o.x - dist > HERO_X + HERO_W - 4);
+      if (ob && !tutDone.has(obCat(ob)) && ob.x - dist < WORLD_W) {
+        const cat = obCat(ob);
+        tut = { ob, cat, phase: 1, at: cat === 'ceil' ? 26 : bestTakeoff(ob, cat === 'tall') };
+      }
+    }
+    let target = 1;
+    if (tut) {
+      const gap = tut.ob.x - dist - (HERO_X + HERO_W);
+      if (tut.ob.x + tut.ob.w - dist < HERO_X) tutFinish();                 // passed it somehow
+      else if (tut.cat === 'ceil') { if (foldHeld()) tutFinish(); else target = (gap - tut.at) / 50; }
+      else if (tut.phase === 1) {
+        if (!onGround) { if (tut.cat === 'tall') tut.phase = 2; else tutFinish(); }
+        else target = (gap - tut.at) / 50;
+      } else { // tall, in the air: freeze near the top of the first jump
+        if (airJumps === 0 || onGround) tutFinish(); else target = (vy - 150) / 260;
+      }
+      if (tut && target < .03) target = 0;
+    }
+    target = clamp(target, 0, 1);
+    slow = target < slow ? target : Math.min(target, slow + dt * 4); // brake at once, release over ~¼ s
+    if (slow < 1) phase += dt * 5 * (1 - slow);                       // the wave keeps breathing while frozen
+  }
+  function drawTut() {
+    if (!tut || slow > .97) return;
+    const a = clamp((1 - slow) * 1.4, 0, 1), touch = touchSeen, fp = fontPx();
+    const card = {
+      ground: ['ПРЫЖОК', touch ? 'тап по правой половине экрана' : 'пробел или ↑', 'арпеджио подпрыгнет на октаву', COL.ch1],
+      ceil: ['ФОЛД', touch ? 'держи палец на левой половине' : 'держи ↓ или S', 'волна сожмётся и проползёт под функцией', COL.ch3],
+      tall: tut.phase === 1
+        ? ['ДВОЙНОЙ ПРЫЖОК', touch ? 'сначала тап справа' : 'сначала пробел или ↑', 'стена высокая — одного прыжка мало', COL.ch1]
+        : ['ЕЩЁ РАЗ!', touch ? 'тап в воздухе' : 'пробел в воздухе', 'второй прыжок — на две октавы выше', COL.ch1],
+    }[tut.cat];
+    const big = clamp(cw / 18, 20, 40), cy = ch * .3;
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = `600 ${fp + 3}px "IBM Plex Mono", ui-monospace, monospace`;
+    const w = Math.min(cw - 24, Math.max(ctx.measureText(card[1]).width, ctx.measureText(card[2]).width * .85, big * card[0].length * .72) + 48);
+    ctx.globalAlpha = a; darkPlate(cw / 2 - w / 2, cy - big * .9, w, big * .9 + fp * 5.2, .8); ctx.restore();
+    textScreen(card[0], cw / 2, cy - big * .2, card[3], 'center', big, 700, '"Unbounded", "Arial Black", sans-serif', a);
+    textScreen(card[1], cw / 2, cy + big * .55 + fp * .6, COL.silk, 'center', fp + 3, 600, undefined, a);
+    textScreen(card[2], cw / 2, cy + big * .55 + fp * 2.4, COL.dim, 'center', fp, 500, undefined, a * (.6 + .4 * Math.sin(performance.now() / 160)));
+  }
   function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
   function givePower(type) {
     buzz(25);
@@ -1492,7 +1575,7 @@ body.desk .mbtns button:hover{opacity:1}
     else if (retry) { pts = levelStartPts; partials = levelStartPartials; bossCheckpoint = -1; }
     else { pts = 0; partials = 0; levelStartPts = 0; levelStartPartials = 0; bossCheckpoint = -1; }
     if (endless) bossCheckpoint = -1;
-    state = 'play'; hideOverlay(); startMusic(); setMode(); touchHintT = 0;
+    state = 'play'; hideOverlay(); startMusic(); setMode(); touchHintT = 0; tut = null; slow = 1;
     enterPlayMode();
     if (li === 0 && !retry && !endless) story(OPENING, null, makeOpening());
   }
@@ -1612,6 +1695,7 @@ body.desk .mbtns button:hover{opacity:1}
       box.appendChild(b);
     });
   }
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function resetOverlayLook() { $('ovText').classList.remove('opt'); }
   function showOverlay(kind, info) {
     const chip = $('ovChip'), h = $('ovTitle'), p = $('ovText'), b = $('ovBtn'), b2 = $('ovBtn2');
@@ -1620,7 +1704,7 @@ body.desk .mbtns button:hover{opacity:1}
       ovEl.style.setProperty('--chip', COL.ch3);
       chip.textContent = 'NO SIGNAL';
       h.textContent = 'Сигнал потерян';
-      p.innerHTML = `Последний удар: <code>${killer}</code>.<br>Счёт <strong>${info.s}</strong>${info.rec ? ', это новый рекорд' : `, рекорд ${best}`}.`;
+      p.innerHTML = `Последний удар: <code>${esc(killer)}</code>.<br>Счёт <strong>${info.s}</strong>${info.rec ? ', это новый рекорд' : `, рекорд ${best}`}.`;
       b.textContent = lastEndless ? 'Ещё раз · свобода ▶' : bossCheckpoint === level ? 'Ещё раз · к боссу ▶' : `Ещё раз · уровень ${level + 1} ▶`;
       b2.hidden = level === 0 && bossCheckpoint !== 0; b2.textContent = 'С первого уровня';
       renderLevelChips(false);
@@ -2141,6 +2225,13 @@ body.desk .mbtns button:hover{opacity:1}
     if (line) out.push(line);
     return out;
   }
+  // Hard-cleared inside, soft dark edge around it: phosphor trails can't build up under text drawn on top.
+  // Expects the screen-pixel transform (dpr).
+  function darkPlate(x, y, w, h, a = .88) {
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h);
+    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = `rgba(3,5,8,${a})`;
+    ctx.shadowColor = `rgba(3,5,8,${a})`; ctx.shadowBlur = 18; ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0;
+  }
   function drawStoryText(tnow) {
     const [who, line] = storyQ.lines[storyQ.i], c = CAST[who];
     const pad = 14, fp = fontPx(), top = pad + fp * 2.6;
@@ -2151,11 +2242,7 @@ body.desk .mbtns button:hover{opacity:1}
     ctx.font = `${c.nar ? 'italic ' : ''}400 ${bodyPx}px "IBM Plex Sans", system-ui, sans-serif`;
     const wl = wrapLines(line, maxW), textW = Math.max(...wl.map(l => ctx.measureText(l).width), 160);
     const plateW = Math.min(cw, textW + pad * 2 + 8), plateH = top + fp * 1.9 + wl.length * bodyPx * 1.42 + fp * 1.6 + 8;
-    const plate = (x, y, w, h) => { // hard-cleared inside, soft dark edge around it
-      ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h);
-      ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(3,5,8,.88)';
-      ctx.shadowColor = 'rgba(3,5,8,.88)'; ctx.shadowBlur = 18; ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0;
-    };
+    const plate = darkPlate;
     plate(0, 0, plateW, plateH);
     ctx.font = `500 ${fp - 1}px "IBM Plex Mono", ui-monospace, monospace`;
     const skW = ctx.measureText('пропустить ⏭').width + pad * 2;
@@ -2563,7 +2650,7 @@ body.desk .mbtns button:hover{opacity:1}
         textScreen('◀ держи: фолд', cw * .25, ch - 30, COL.ch3, 'center', fp, 600, undefined, ha);
         textScreen('тап: прыжок ▶', cw * .75, ch - 30, COL.ch1, 'center', fp, 600, undefined, ha);
       }
-    } else if (deskHints && state === 'play' && !storyQ) {
+    } else if (deskHints && tutDone.size === 3 && state === 'play' && !storyQ) { // new players get the onboarding instead
       if (touchHintT >= 7) deskHints = false; // once per visit
       const t = touchHintT, ha = .8 * (t < .6 ? t / .6 : t < 5.5 ? 1 : Math.max(0, (7 - t) / 1.5)), yy = ch - pad - fp * 5.5;
       textScreen('пробел / ↑ — прыжок, в воздухе ещё раз — выше', cw / 2, yy, COL.ch1, 'center', fp, 500, undefined, ha);
@@ -2572,7 +2659,8 @@ body.desk .mbtns button:hover{opacity:1}
     }
 
     // banners
-    if (banner && state !== 'title' && !storyQ) {
+    const tutCard = tut && slow < .97;
+    if (banner && state !== 'title' && !storyQ && !tutCard) {
       const t = banner.t, a = t < .3 ? t / .3 : t > 2 ? Math.max(0, (2.6 - t) / .6) : 1;
       const big = clamp(cw / 20, 18, 40);
       textScreen(banner.l1.toUpperCase(), cw / 2, ch * .3, banner.red ? COL.red : COL.ch1, 'center', big, 700, '"Unbounded", "Arial Black", sans-serif', a);
@@ -2582,6 +2670,7 @@ body.desk .mbtns button:hover{opacity:1}
       const t = toast.t, a = t < .15 ? t / .15 : t > 1.3 ? Math.max(0, (1.8 - t) / .5) : 1;
       textScreen(toast.text, cw / 2, ch * .46, toast.power && power ? powerColor(power.type, tnow) : toast.color, 'center', fp + 1, 600, undefined, a);
     }
+    drawTut();
   }
 
   // Биткрашер: show the frame through a low-resolution copy; the bits meter stays sharp on top
@@ -2622,7 +2711,7 @@ body.desk .mbtns button:hover{opacity:1}
       for (let k = before; k < Math.min(Math.floor(storyQ.shown), line[1].length); k++) {
         if (k % 2 === 0 && /[^\s.,!?…—–:;«»()-]/.test(line[1][k])) keyClick(line[0]); // a key click every other letter
       }
-    } else if (state !== 'paused') update(dt);
+    } else if (state !== 'paused') { tutTick(dt); update(dt * slow); }
     render(state === 'paused' ? .0001 : dt);
     postFx();
     hud();
