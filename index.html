@@ -274,7 +274,7 @@ body.desk .mbtns button:hover{opacity:1}
             <option value="b2">Босс · Суперпила</option>
             <option value="l3">Уровень 4 · F Lydian</option>
             <option value="b3">Босс · Секвенсор</option>
-            <option value="l4">Уровень 5 · C Whole-tone</option>
+            <option value="l4">Уровень 5 · F# Aeolian</option>
             <option value="b4">Босс · Wavetable</option>
             <option value="free">∞ Свободный режим</option>
           </select>
@@ -321,7 +321,7 @@ body.desk .mbtns button:hover{opacity:1}
         <kbd>P</kbd> пауза, <kbd>M</kbd> звук, <kbd>G</kbd> бессмертие для тестов. Нет звука на iPhone — проверь бесшумный режим.
       </p>
       <p class="modes">
-        <span>1</span> A Aeolian · <span>2</span> D Dorian · <span>3</span> E Phrygian · <span>4</span> F Lydian · <span>5</span> C Whole-tone.
+        <span>1</span> A Aeolian · <span>2</span> D Dorian · <span>3</span> E Phrygian · <span>4</span> F Lydian · <span>5</span> F# Aeolian.
         Линия <span>T</span> на экране — триггер следующего уровня.
         После финала открывается <span>∞</span> свободная развёртка: золотые капсулы ладов переключают музыку, там ещё C Ionian, G Mixolydian и A Harmonic minor.
       </p>
@@ -466,15 +466,15 @@ body.desk .mbtns button:hover{opacity:1}
     { key:'F', name:'F Lydian', abbr:'lyd', scope:'F LYD', bpm:122, speed0:285, len:9000, pat:[0,1,2,3,4,5,3,1],
       prog:[{t:[-4,0,3,7],r:-16},{t:[-2,2,5],r:-16},{t:[-4,0,3,7],r:-16},{t:[-5,-2,2,5],r:-17}],
       ground:ALL_G, ceil:ALL_C, pTall:.17, pCeil:.34, intro:[], boss:'seq' },
-    { key:'C', name:'C Whole-tone', abbr:'whole', scope:'C WHOLE', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt',
-      prog:[{t:[-9,-5,-1],r:-21},{t:[-7,-3,1],r:-19},{t:[-5,-1,3],r:-17},{t:[-3,1,5],r:-15}],
+    { key:'F#', name:'F# Aeolian', abbr:'aeol', scope:'F# AEOL', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt',
+      prog:[{t:[-3,0,4],r:-15},{t:[-7,-3,0],r:-19},{t:[0,4,7],r:-12},{t:[-5,-1,2],r:-17}], // F#m – D – A – E: the progressive-house turn
       ground:ALL_G, ceil:ALL_C, pTall:.18, pCeil:.35, intro:[] },
   ];
   // Sonic-style gate: this many partials in the level before its boss opens
   const NEED = [15, 18, 20, 22, 25];
   // Musical modes. The five level modes come first; free play adds three more, picked up as mode capsules.
   // steps = the scale's semitones, drawn on the capsule as a little staircase
-  const STEPS = [[0,2,3,5,7,8,10],[0,2,3,5,7,9,10],[0,1,3,5,7,8,10],[0,2,4,6,7,9,11],[0,2,4,6,8,10]];
+  const STEPS = [[0,2,3,5,7,8,10],[0,2,3,5,7,9,10],[0,1,3,5,7,8,10],[0,2,4,6,7,9,11],[0,2,3,5,7,8,10]];
   const MODES = LEVELS.map((L, i) => ({ name: L.name, scope: L.scope, pat: L.pat, prog: L.prog, steps: STEPS[i] })).concat([
     { name:'C Ionian', scope:'C ION', pat:[0,1,2,3,4,3,2,1], steps:[0,2,4,5,7,9,11],
       prog:[{t:[3,7,10],r:-9},{t:[0,3,7],r:-12},{t:[-4,0,3],r:-16},{t:[-2,2,5],r:-14}] },
@@ -702,29 +702,43 @@ body.desk .mbtns button:hover{opacity:1}
   // the chord changes, so it is a tune, not a random walk. The rhythm and contour come from the level's genre.
   // [step in bar (16ths), chord-tone index (0 root, 1 third, 2 fifth, 3 next chord tone/octave…), length in 16ths]
   const MOTIFS = {
-    pop:    [[[0, 2, 2], [2, 3, 2], [4, 4, 2], [6, 3, 2], [8, 5, 3], [11, 4, 1], [12, 3, 2], [14, 2, 2]],     // synth-pop hook: 8ths with a push
-             [[0, 2, 2], [2, 3, 2], [4, 4, 4], [10, 3, 2], [12, 2, 4]]],
+    pop:    [[[0, 2, 3], [3, 3, 1], [4, 4, 2], [6, 3, 2], [8, 5, 4], [12, 4, 2], [14, 3, 2]],                  // synth-pop hook: dotted push, a held top
+             [[0, 2, 2], [2, 3, 2], [4, 4, 6], [10, 3, 2], [12, 2, 4]]],
     chip:   [[[0, 0, 1], [1, 1, 1], [2, 2, 1], [3, 4, 1], [4, 5, 3], [8, 0, 1], [9, 1, 1], [10, 2, 1], [11, 4, 1], [12, 3, 4]], // NES runs
              [[0, 5, 1], [1, 4, 1], [2, 2, 1], [3, 1, 1], [4, 0, 3], [8, 2, 2], [10, 4, 2], [12, 5, 4]]],
     trance: [[[2, 2, 2], [6, 3, 2], [10, 4, 2], [14, 5, 2]],                                                   // off-beat plucks, rising
-             [[2, 5, 2], [6, 4, 2], [10, 3, 2], [12, 4, 4]]],
+             [[2, 5, 2], [6, 4, 2], [8, 3, 8]]],                                                               // …then one long note
     glitch: [[[0, 4, 1], [1, 4, 1], [2, 4, 1], [6, 2, 1], [7, 2, 1], [10, 5, 2], [13, 3, 1], [14, 3, 1]],     // stutters and gaps
              [[0, 3, 1], [3, 3, 1], [4, 4, 1], [5, 4, 1], [8, 2, 2], [12, 5, 1], [13, 5, 1], [14, 5, 1], [15, 5, 1]]],
-    modern: [[[0, 2, 2], [3, 4, 2], [6, 3, 2], [10, 2, 4]],                                                    // sparse 3-3-2 plucks
-             [[0, 5, 2], [3, 4, 2], [6, 2, 2], [8, 3, 6]]],
+    modern: [[[0, 4, 2], [3, 4, 2], [6, 3, 2], [8, 4, 2], [10, 5, 2], [12, 4, 2], [14, 3, 2]],               // progressive-house pluck hook, 3-3-2 push
+             [[0, 4, 2], [3, 4, 2], [6, 3, 2], [8, 2, 4], [12, 1, 2], [14, 2, 2]]],
   };
   const MOTIF_AT = {}; // style → [bar A, bar B] → 16 slots
   for (const k in MOTIFS) MOTIF_AT[k] = MOTIFS[k].map(bar => { const a = Array(16).fill(null); for (const [st, i, l] of bar) a[st] = { i, len: l }; return a; });
-  const STYLE_WET = { pop: .16, chip: 0, trance: .28, glitch: .08, modern: .22 }; // echo on the Sine per genre
+  const STYLE_WET = { pop: .16, chip: 0, trance: .28, glitch: .08, modern: .26 }; // echo on the Sine per genre
   function chordTone(c, i) { // i-th tone counting up through the chord, lifted so the root sits from A3 up
     const tn = [...c.t].sort((a, b) => a - b); while (tn[0] < 0) for (let k = 0; k < tn.length; k++) tn[k] += 12;
     return tn[i % tn.length] + 12 * Math.floor(i / tn.length);
   }
   let lastMel = 0, styleNow = '';
-  function melNote(t, dur, peak) { // soft attack, a gentle fall while held, a clean release before the next note
-    env.gain.setTargetAtTime(peak, t, .008);
-    env.gain.setTargetAtTime(peak * .6, t + .05, Math.max(.06, dur * .45));
-    env.gain.setTargetAtTime(0, t + Math.max(.05, dur * .88), .035);
+  // The Sine's voice per genre. a/d/s/r — the amp envelope (s is a level, the rest seconds); gate — share of the note
+  // held before release (staccato < 1 < legato); fm — a burst of FM (cents of deviation) that decays in fmD, giving a
+  // sine harmonics to pluck with; lp → lpS in lpD — the filter closing behind each note.
+  const SYN = {
+    pop:    { a: .004, d: .16, s: .5,  r: .12, gate: .85, fm: 900,  fmS: 120, fmD: .14, lp: 5200, lpS: 2000, lpD: .22 },  // bright pluck that settles
+    chip:   { a: .001, d: .03, s: .85, r: .012, gate: .7, fm: 380,  fmS: 380, fmD: .01, lp: 9000, lpS: 9000, lpD: .01 },  // hard on/off, buzzy, no filter
+    trance: { a: .002, d: .12, s: .12, r: .28, gate: .55, fm: 1900, fmS: 60,  fmD: .07, lp: 7500, lpS: 900,  lpD: .14 },  // snappy pluck, long tail into the echo
+    glitch: { a: .001, d: .035, s: 0,  r: .02, gate: .4, fm: 2600, fmS: 0,   fmD: .025, lp: 9500, lpS: 2600, lpD: .04 }, // clicks of tone
+    modern: { a: .002, d: .17, s: .32, r: .22, gate: .8, fm: 1500, fmS: 280, fmD: .14, lp: 6800, lpS: 2200, lpD: .24 }, // bright EDM pluck lead
+  };
+  function melNote(t, dur, peak, P = SYN.pop) {
+    const g = env.gain;
+    g.setTargetAtTime(peak, t, P.a / 3 + .001);                          // attack
+    g.setTargetAtTime(peak * P.s, t + P.a, P.d / 3 + .001);              // decay to sustain
+    g.setTargetAtTime(0, t + Math.max(.03, dur * P.gate), P.r / 3 + .002); // release
+    if (curWave !== 'sine' || battleFM) return;                          // capsules keep their own timbre
+    fmGain.gain.cancelScheduledValues(t); fmGain.gain.setTargetAtTime(P.fm, t, .002); fmGain.gain.setTargetAtTime(P.fmS, t + .004, P.fmD / 3 + .001);
+    lp.frequency.cancelScheduledValues(t); lp.frequency.setTargetAtTime(P.lp, t, .002); lp.frequency.setTargetAtTime(P.lpS, t + .004, P.lpD / 3 + .001);
   }
   // smooth exponential attack/decay from wherever the envelope is: no step, no click (the delay used to echo the clicks)
   function blip(t, peak, d) {
@@ -826,9 +840,10 @@ body.desk .mbtns button:hover{opacity:1}
     for (const d of det) { const o = ac.createOscillator(); o.type = type; o.frequency.value = hz(semi); o.detune.value = d; o.connect(f); o.start(t); o.stop(end + .05); }
     f.connect(g); g.connect(padBus);
   }
-  function bandVoice(t, semi, type, vol, dur, lpF, att = .006) { // plucked bass/lead note on the band bus
+  function bandVoice(t, semi, type, vol, dur, lpF, att = .006, env = 0, q = .7) { // plucked bass/lead note on the band bus; env: filter opens ×env and closes over the note
     const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
-    o.type = type; o.frequency.setValueAtTime(hz(semi), t); f.type = 'lowpass'; f.frequency.value = lpF;
+    o.type = type; o.frequency.setValueAtTime(hz(semi), t); f.type = 'lowpass'; f.Q.value = q;
+    f.frequency.setValueAtTime(lpF * (env || 1), t); if (env) f.frequency.setTargetAtTime(lpF, t + .005, dur / 4);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.setTargetAtTime(0, t + att, dur / 3);
     o.connect(f); f.connect(g); g.connect(padBus); o.start(t); o.stop(t + dur * 1.6 + .05);
   }
@@ -847,7 +862,7 @@ body.desk .mbtns button:hover{opacity:1}
       if (s === 0 || s === 8 || (s === 10 && bar % 2)) kick(t, .42);
       if (s === 4 || s === 12) clap(t, .3, 1700);
       if (s % 2 === 0) hat(t, s % 4 === 2 ? .07 : .04);
-      if (s % 2 === 0) bandVoice(t, c.r + (s % 4 === 2 ? 12 : 0), 'sawtooth', .075, d * 1.4, 650);
+      if (s % 2 === 0) bandVoice(t, c.r + (s % 4 === 2 ? 12 : 0), 'sawtooth', .075, d * (s % 8 === 6 ? 2.2 : 1.3), 520, .004, 4, 3); // filter-plucked 8ths, the last of each pair longer
       if (s === 0) chordUp(c).forEach(x => padNote(t, x, barLen * .92, { type: 'square', det: [-7, 7], lp: 1500, vol: .014, att: .03, rel: .35 }));
       if (s === 6 || s === 14) chordUp(c).forEach(x => padNote(t, x + 12, d * .6, { type: 'sawtooth', det: [0], lp: 3200, vol: .012, att: .004, rel: .12 })); // stabs
     } else if (style === 'chip') {    // a hint of NES: triangle bass, noise kit, a thin pulse pad (quantised by the chip bus)
@@ -859,7 +874,7 @@ body.desk .mbtns button:hover{opacity:1}
       if (s === 14 && bar % 2) chipVoice(t, c.t[0] + 24, 'square', .1, d * 2); // a little pickup note
     } else if (style === 'trance') {  // trance: four on the floor, off-beat bass, open hats, a pumping supersaw pad
       if (s % 4 === 0) { kick(t, .48, 42); duck(t, .3, .12); }
-      if (s % 4 === 2) { bandVoice(t, c.r, 'sawtooth', .1, d * 1.3, 480); hat(t, .08, .09, 8000); }
+      if (s % 4 === 2) { bandVoice(t, c.r, 'sawtooth', .1, d * 1.3, 380, .003, 5, 4); hat(t, .08, .09, 8000); } // resonant off-beat bass
       else if (s % 2 === 1) hat(t, .025);
       if (s === 4 || s === 12) clap(t, .22, 2000);
       if (s === 0) chordUp(c).forEach(x => padNote(t, x, barLen * .95, { type: 'sawtooth', det: [-22, -9, 9, 22], lp: 1600, sweep: 2.2, vol: .011, att: .08, rel: .5 }));
@@ -872,14 +887,13 @@ body.desk .mbtns button:hover{opacity:1}
       if (s === 6 || s === 14) { const z = fmVoice(t, 900, 1.5, 6, .06, .03, .05, 'square'); z.frequency.exponentialRampToValueAtTime(3800, t + .05); } // zips
       if (s % 2 === 1 && !odd) hat(t, .022, .015, 9000);
       if (s === 0) c.t.forEach(x => padNote(t, x + 12, barLen * .9, { type: 'triangle', det: [-5, 5], lp: 3000, vol: .016, att: .3, rel: .8 }));
-    } else {                          // modern: deep soft kick, shuffled hats, snaps, reese bass, a slowly opening wide pad
-      if (s % 4 === 0) { kick(t, .4, 40); duck(t, .45, .16); }
-      const sw = s % 2 ? d * .14 : 0, vel = [.012, .006, .03, .008][s % 4];
-      hat(t + sw, vel * 1.6, .025, 9000);
-      if (s === 4 || s === 12) clap(t, .2, 2600);
-      if (s === 0 || s === 8) padNote(t, c.r, d * 7.2, { type: 'sawtooth', det: [-14, 14], lp: 360, vol: .055, att: .02, rel: .12, q: 2 });
-      if (s === 0) [...c.t, c.t[0] + 12].forEach(x => padNote(t, x, barLen * .98, { type: 'sawtooth', det: [-10, 10], lp: 700, sweep: 3, vol: .01, att: .5, rel: 1.2 }));
-      if (s === 11 || s === 14) bandVoice(t, c.t[(s + bar) % c.t.length] + 24, 'triangle', .035, .25, 4000); // sparse plucks
+    } else {                          // modern = progressive house: four on the floor, pumping, 3-3-2 chord stabs, rolling bass
+      if (s % 4 === 0) { kick(t, .46, 42); duck(t, .28, .13); }
+      if (s % 4 === 2) hat(t, .075, .085, 8000); else if (s % 2) hat(t, .018, .02, 9500);
+      if (s === 4 || s === 12) clap(t, .24, 2100);
+      if (s % 4 === 2 || s % 4 === 3) bandVoice(t, c.r + (s % 4 === 3 ? 12 : 0), 'sawtooth', .085, d * .9, 340, .003, 4, 3); // rolling off-beat bass
+      if ([0, 3, 6, 8, 11, 14].includes(s)) chordUp(c).forEach(x => bandVoice(t, x, 'sawtooth', .018, d * 1.6, 1400, .002, 3, 1.5)); // piano-house stabs
+      if (s === 0) chordUp(c).forEach(x => padNote(t, x, barLen * .98, { type: 'sawtooth', det: [-14, 0, 14], lp: 1100, sweep: 2.2, vol: .008, att: .2, rel: .6 })); // wide pad under it
     }
   }
   const BAND = ['pop', 'chip', 'trance', 'glitch', 'modern'];
@@ -926,8 +940,8 @@ body.desk .mbtns button:hover{opacity:1}
     const bossTrack = boss && !boss.dead && boss.t > 1 && ['pwm', 'chords', 'harm', 'crush'].includes(boss.B.kind);
     const talk = state === 'story' && !(storyQ && storyQ.scene);
     if (bossTrack) { env.gain.cancelScheduledValues(t); env.gain.setTargetAtTime(0, t, .05); }
-    else if (ev) { lastMel = semi; setFreq(semi + octave, t); env.gain.cancelScheduledValues(t); melNote(t, ev.len * d, talk ? .08 : .24); }
-    else if (curWave === 'mdr' && n % 2 === 0) { const sm = chordTone(c, (n >> 1) % 3); setFreq(sm + octave, t); env.gain.cancelScheduledValues(t); melNote(t, d, .16); } // Меандр fills every gap
+    else if (ev) { lastMel = semi; setFreq(semi + octave, t); env.gain.cancelScheduledValues(t); melNote(t, ev.len * d, talk ? .08 : .24, SYN[style]); }
+    else if (curWave === 'mdr' && n % 2 === 0) { const sm = chordTone(c, (n >> 1) % 3); setFreq(sm + octave, t); env.gain.cancelScheduledValues(t); melNote(t, d, .16, SYN.chip); } // Меандр fills every gap
     const dance = boss && boss.B.kind === 'chords' && !boss.dead && boss.t > 1;
     const dub = boss && boss.B.kind === 'harm' && !boss.dead && boss.t > 1;
     if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % (4 / boss.rate) === 0) { // the sequencer plays its own steps
@@ -1073,8 +1087,9 @@ body.desk .mbtns button:hover{opacity:1}
   // Partials climb a ladder: the mode's scale over two octaves, spread over the partials this level needs,
   // so each pickup sounds one step higher. Losing them runs the arp back down the same steps.
   const KEY_SEMI = { A: 0, B: 2, C: 3, D: 5, E: 7, F: 8, G: 10 };
+  const keySemi = M => { const k = M.scope.split(' ')[0]; return ((KEY_SEMI[k[0]] ?? 0) + (k[1] === '#' ? 1 : 0)) % 12; };
   function partialLadder() {
-    const M = MODES[curMode], r = KEY_SEMI[M.scope[0]] ?? 0, lad = [];
+    const M = MODES[curMode], r = keySemi(M), lad = [];
     for (let o = 0; o < 2; o++) for (const st of M.steps) lad.push(r + 12 + o * 12 + st);
     lad.push(r + 36); return lad;
   }
