@@ -287,7 +287,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
           <li style="--c:var(--digital)"><b>Биткрашер</b> ур. 2: лови единицы, ноль — вниз до чекпоинта</li>
           <li style="--c:var(--digital)"><b>Суперпила</b> это Треугольник: попади аккордом в аккорд</li>
           <li style="--c:var(--digital)"><b>Секвенсор</b> ур. 4: прыгай в такт, промах — битшифт</li>
-          <li style="--c:var(--digital)"><b>Wavetable</b> лови зелёные гармоники, уклоняйся от красных</li>
+          <li style="--c:var(--digital)"><b>Wavetable</b> лови зелёные гармоники; красный выстрел возвращает гармонику в таблицу</li>
         </ul>
       </div>
       <div>
@@ -304,7 +304,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       <p class="help">
         На телефоне: тап по правой половине экрана — прыжок, держи левую — фолд. На клавиатуре <kbd>Пробел</kbd> <kbd>↑</kbd> — прыжок, арп на октаву вверх, в воздухе ещё раз — на две.
         Держи <kbd>↓</kbd> или <kbd>S</kbd>: wavefold, чтобы проползти под висящими функциями; волна сжимается и арп падает на октаву.
-        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай на ту чашу весов, которая опускается (она горит зелёным): так ШИМ раскачивается, пока скважность не вылетит за 0% или 100%; другая чаша его успокаивает. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. Wavetable стреляет: красные выстрелы — уворачивайся (↑ прыжок, ↓ фолд), зелёные — его гармоники, лови; когда снимешь все восемь, останется чистый синус. Партиалы — это жизни: уровень начинается с 4, попадание отнимает 4, без партиалов попадание — конец.
+        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай на ту чашу весов, которая опускается (она горит зелёным): так ШИМ раскачивается, пока скважность не вылетит за 0% или 100%; другая чаша его успокаивает. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. Wavetable стреляет: красные выстрелы — уворачивайся (↑ прыжок, ↓ фолд), попадание возвращает ему гармонику (даже в бессмертии), зелёные — его гармоники, лови; когда снимешь все восемь, останется чистый синус. Партиалы — это жизни: уровень начинается с 4, попадание отнимает 4, без партиалов попадание — конец.
         Красные ворота — эффекты: <span style="color:#ff5a4a">выпрямитель</span> режет синус пополам и ослабляет прыжок, <span style="color:#ff5a4a">кольцевой модулятор</span> делит тебя на два сайдбенда — второй гуляет рядом, не задень его.
         <kbd>P</kbd> пауза, <kbd>M</kbd> звук, <kbd>G</kbd> бессмертие для тестов. Нет звука на iPhone — проверь бесшумный режим.
       </p>
@@ -417,7 +417,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['tri', 'Не жди благодарности. Но капсулы TRI оставлю: лунный прыжок — это моё.'],
         ['mdr', 'Двое вернулись. Остался Комплекс. И Wavetable.'],
       ] },
-    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'лови зелёные гармоники, уклоняйся от красных',
+    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'лови зелёные, от красных уклоняйся — они возвращают гармонику',
       atk: () => fmIndex < 4 ? pick(['square', 'gauss', 'redux']) : fmIndex < 8 ? pick(['saw', 'fft', 'am']) : pick(['fft', 'tan', 'pi', 'am', 'spike']),
       intro: [
         ['wt', 'Тестовый сигнал. Дошёл до конца развёртки… Я недооценил тебя.'],
@@ -425,7 +425,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['wt', 'Впрочем, меня это не волнует. Ты не пройдёшь.'],
         ['cpxr', 'Синус… Он прав в одном: я старый. Для сложных сигналов теперь проще wavetable.'],
         ['sine', 'Ты нужен нам. Не таблица — ты.'],
-        ['cpx', 'Тогда держись рядом. Я буду гнуть его FM-ом, а он начнёт палить. Красное — уворачивайся. Зелёное — его гармоники, лови. Снимем все, останется синус.'],
+        ['cpx', 'Тогда держись рядом. Я буду гнуть его FM-ом, а он начнёт палить. Красное — уворачивайся, иначе он вернёт себе гармонику. Зелёное — его гармоники, лови. Снимем все, останется синус.'],
       ],
       outro: [
         ['wt', 'Позиция… ноль… чистый… синус…'],
@@ -1081,7 +1081,8 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     let kind;
     if (levelSpawn < L.intro.length) kind = L.intro[levelSpawn];
     else {
-      const r = Math.random(), pTall = level === 0 && prog < .3 ? 0 : L.pTall;
+      const prevTall = obstacles.length && obstacles[obstacles.length - 1].tall;
+      const r = Math.random(), pTall = (level === 0 && prog < .3) || prevTall ? 0 : L.pTall;
       if (r < pTall) kind = pick(['pi', 'sqrt']);
       else if (r < pTall + L.pCeil) kind = pick(L.ceil);
       else kind = pick(L.ground);
@@ -1099,7 +1100,8 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       pickups.push({ x: ob.x + ob.w / 2, h: ph, got: false, t: 0, seed: R(0, 6) });
     }
     const gapT = lerp(1.25, .82, dd) + Math.random() * lerp(.7, .5, dd);
-    const gap = Math.max(speed * gapT, ob.tall ? 240 : 170);
+    // a double jump stays airborne ~0.9 s: leave room to land before the next obstacle
+    const gap = ob.tall ? Math.max(speed * Math.max(gapT, 1.05), 300) : Math.max(speed * gapT, 170);
     const mid = ob.x + ob.w + gap * .5;
     if ((level === 0 && levelSpawn === 5) || (levelSpawn > 3 && Math.random() < .13)) {
       pills.push({ x: mid, h: pick([12, 12, 55]), type: pick(capsules()), seed: R(0, 6), got: false });
@@ -1220,6 +1222,16 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     if (red) { const ln = pick(LANES_RED); shots.push({ red: true, x, h: ln.h, tip: ln.tip, vx, t: 0 }); sfxFM(3, .18, 0, .07, 2.7); }
     else { shots.push({ red: false, k: harmNext(), x, h: pick(LANES_GREEN), vx, t: 0 }); tones([24, 31], 'sine', .03, .06, .15); }
     b.shotT = R(.9, 1.35) - (8 - b.rem.length) * .05; // a bit faster as it loses harmonics
+  }
+  // a red hit puts the last stripped harmonic back into the table (works in god mode too)
+  function wtRestore() {
+    const b = boss; if (!b || b.dead) return;
+    const back = b.removed.pop();
+    if (back) { b.rem.push(back); b.rem.sort((x, y) => y - x); b.hp = b.rem.length; setDubLayers(b.hp); }
+    b.hitT = .25;
+    if (god) { invulnT = .8; tones([0, 6], 'sawtooth', .04, .06, .2); buzz(60); }
+    const pre = !god && toast && toast.color === COL.red && toast.t === 0 ? toast.text + ' · ' : '';
+    toast = { t: 0, text: pre + (back ? `h${back} вернулась в таблицу` : 'красный выстрел'), color: COL.red };
   }
   function allyHarm() {
     sfxFM(4 + Math.random() * 3, .45, pick([-12, -9, -5]), .13, 1.41);
@@ -1830,7 +1842,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         if (sh.done) continue;
         if (hitBox(sh.x - dist, sh.h, sh.red ? 6 : 9)) {
           sh.done = true;
-          if (sh.red) takeHit('выстрел Wavetable'); else if (boss && !boss.dead) { sh.k = harmNext(); catchHarm(sh); }
+          if (sh.red) { if (invulnT <= 0) { takeHit('выстрел Wavetable'); wtRestore(); } } else if (boss && !boss.dead) { sh.k = harmNext(); catchHarm(sh); }
         }
       }
       shots = shots.filter(sh => !sh.done && sh.x - dist > -30);
@@ -2468,7 +2480,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     }
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
       const nx = harmNext(), yy = pad + fp * 2.4;
-      textScreen(`лови зелёные · уклоняйся от красных · следующая h${nx}`, cw / 2, yy, COL.ch4, 'center', fp, 700);
+      textScreen(`лови зелёные · красный вернёт гармонику · следующая h${nx}`, cw / 2, yy, COL.ch4, 'center', fp, 700);
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.font = `700 ${fp}px "IBM Plex Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const cellW = Math.min(30, cw / 13), x0 = cw / 2 - cellW * 4.5;
