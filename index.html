@@ -292,7 +292,7 @@ body.desk .mbtns button:hover{opacity:1}
           <li style="--c:var(--silk)"><b>Меандр</b> без углов, вечно падает</li>
           <li style="--c:var(--tri)"><b>Треугольник</b> нежная гамма</li>
           <li class="side-l">Цифра</li>
-          <li style="--c:var(--digital)"><b>Квадрат</b> это Меандр: раскачай ШИМ на весах</li>
+          <li style="--c:var(--digital)"><b>Квадрат</b> это Меандр: прыгай по его импульсам</li>
           <li style="--c:var(--digital)"><b>Биткрашер</b> ур. 2: лови единицы, ноль — вниз до чекпоинта</li>
           <li style="--c:var(--digital)"><b>Суперпила</b> это Треугольник: попади аккордом в аккорд</li>
           <li style="--c:var(--digital)"><b>Секвенсор</b> ур. 4: прыгай в такт, промах — битшифт</li>
@@ -313,7 +313,7 @@ body.desk .mbtns button:hover{opacity:1}
       <p class="help">
         На телефоне: тап по правой половине экрана — прыжок, держи левую — фолд. На клавиатуре <kbd>Пробел</kbd> <kbd>↑</kbd> — прыжок, арп на октаву вверх, в воздухе ещё раз — на две.
         Держи <kbd>↓</kbd> или <kbd>S</kbd>: wavefold, чтобы проползти под висящими функциями; волна сжимается и арп падает на октаву.
-        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай на ту чашу весов, которая опускается (она горит зелёным): так ШИМ раскачивается, пока скважность не вылетит за 0% или 100%; другая чаша его успокаивает. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. Wavetable стреляет: красные выстрелы — уворачивайся (↑ прыжок, ↓ фолд), попадание возвращает ему гармонику (даже в бессмертии), зелёные — его гармоники, лови; когда снимешь все восемь, останется чистый синус. Партиалы — это жизни: уровень начинается с 4, попадание отнимает 4, без партиалов попадание — конец.
+        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай по зелёным импульсам: каждый обрушенный расширяет его ШИМ, серия без касания земли — сильнее; на земле ШИМ успокаивается. 100% — победа. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. Wavetable стреляет: красные выстрелы — уворачивайся (↑ прыжок, ↓ фолд), попадание возвращает ему гармонику (даже в бессмертии), зелёные — его гармоники, лови; когда снимешь все восемь, останется чистый синус. Партиалы — это жизни: уровень начинается с 4, попадание отнимает 4, без партиалов попадание — конец.
         Красные ворота — эффекты: <span style="color:#ff5a4a">выпрямитель</span> режет синус пополам и ослабляет прыжок, <span style="color:#ff5a4a">кольцевой модулятор</span> делит тебя на два сайдбенда — второй гуляет рядом, не задень его.
         <kbd>P</kbd> пауза, <kbd>M</kbd> звук, <kbd>G</kbd> бессмертие для тестов. Нет звука на iPhone — проверь бесшумный режим.
       </p>
@@ -370,7 +370,7 @@ body.desk .mbtns button:hover{opacity:1}
     ['sine', 'Тестовый сигнал, значит. Ну что ж. Проверим.'],
   ];
   const BOSSES = {
-    bc: { who:'bc', hp:1, kind:'crush', noAtk:true, morph:'sine', y:-140, tip:'лови единицы, нули не бери',
+    bc: { who:'bc', hp:1, kind:'crush', noAtk:true, morph:'sine', y:-140, tip:'лови 1, не бери 0',
       intro: [
         ['bc', 'Шестнадцать бит? Роскошь. Восьми хватит. А там и четырёх.'],
         ['sine', 'Мне нужна вся моя разрядность.'],
@@ -382,7 +382,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['sine', 'Что с ним сделали?'],
         ['mdr', 'Ничего. Он сам сложил семь пил вместе. Танцполы любят громкое. Я его понимаю: когда тебя не замечают, хочется стать резче.'],
       ] },
-    seq: { who:'seq', hp:1, kind:'seq', noAtk:true, morph:'sine', y:-150, tip:'прыгай в такт на горящие шаги',
+    seq: { who:'seq', hp:1, kind:'seq', noAtk:true, morph:'sine', y:-150, tip:'прыгай на красный шаг',
       intro: [
         ['seq', 'Восемь шагов. Каждый мой. Ты будешь играть то, что я запрограммировал.'],
         ['sine', 'А если я перепрограммирую?'],
@@ -395,7 +395,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['sine', 'Энтузиасты — это и есть те, кто помнит. Я иду.'],
         ['tri', 'Мы с тобой. Мягко, но с тобой.'],
       ] },
-    dsq: { who:'dsq', hp:1, vx:50, morph:'mdr', kind:'scales', noAtk:true, tip:'качай ШИМ на весах, выбей его за край',
+    dsq: { who:'dsq', hp:1, vx:50, morph:'mdr', kind:'pwm', noAtk:true, tip:'прыгай по зелёным импульсам',
       atk: () => pick(['square', 'square', 'redux', 'floor', 'double']),
       intro: [
         ['sine', 'Меандр! Держись, я тебя вытащу.'],
@@ -403,7 +403,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['mq', 'А квадратом я наконец работаю. Duty cycle, PWM, всё по-взрослому.'],
         ['sine', 'Но ты же живой. Тёплый.'],
         ['mq', 'В природе нет квадратов, Синус. И мне там нет места. Хочешь меня вернуть — раскачай мой ШИМ, пока скважность не вылетит за край.'],
-        ['mq', 'Видишь весы? Прыгнешь на опускающуюся чашу — качнёшь меня. На другую — я только успокоюсь.'],
+        ['mq', 'Видишь мои импульсы? Прыгай по ним — каждый, что обрушишь, расширит скважность. Стоишь на земле — я успокаиваюсь.'],
       ],
       outro: [
         ['mdr', 'Углы… снова круглые. И опять я падаю.'],
@@ -411,7 +411,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['mdr', 'Ладно. Мои капсулы MDR теперь твои. Только на PWM не рассчитывай.'],
         ['mdr', 'Треугольник ушёл за Суперпилой куда-то во фригийский лад. А Комплекса Wavetable увёз в самый конец развёртки.'],
       ] },
-    ssaw: { who:'ssaw', hp:6, vx:75, morph:'tri', kind:'chords', y:-156, noAtk:true, tip:'попади аккордом в аккорд',
+    ssaw: { who:'ssaw', hp:6, vx:75, morph:'tri', kind:'chords', y:-156, noAtk:true, tip:'прыгай на её аккорд',
       atk: () => pick(['saw', 'spike', 'spike', 'saw']),
       intro: [
         ['sine', 'Треугольник? Это ты?'],
@@ -426,7 +426,7 @@ body.desk .mbtns button:hover{opacity:1}
         ['tri', 'Не жди благодарности. Но капсулы TRI оставлю: лунный прыжок — это моё.'],
         ['mdr', 'Двое вернулись. Остался Комплекс. И Wavetable.'],
       ] },
-    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'лови зелёные, от красных уклоняйся — они возвращают гармонику',
+    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'лови зелёные, уклоняйся от красных',
       atk: () => fmIndex < 4 ? pick(['square', 'gauss', 'redux']) : fmIndex < 8 ? pick(['saw', 'fft', 'am']) : pick(['fft', 'tan', 'pi', 'am', 'spike']),
       intro: [
         ['wt', 'Тестовый сигнал. Дошёл до конца развёртки… Я недооценил тебя.'],
@@ -684,7 +684,7 @@ body.desk .mbtns button:hover{opacity:1}
   function trackSquare(dt) {
     if (!ac || !swOn || !boss || boss.key !== 'dsq' || boss.dead) return;
     swT -= dt; if (swT > 0) return; swT = .04;
-    const t = ac.currentTime, dw = clamp(boss.duty, .03, .97), k = clamp((boss.amp - SQ_NORM) / (SQ_EDGE - SQ_NORM), 0, 1);
+    const t = ac.currentTime, dw = clamp(boss.duty, .03, .97), k = clamp((boss.base - .5) / (SQ_WIN - .5), 0, 1);
     for (const v of [pwmBass, ...pwmPad]) if (v.f) v.d.delayTime.setTargetAtTime(dw / v.f, t, .03);
     swBF.frequency.setTargetAtTime(1100 + k * 3200, t, .1); swBF.Q.value = 3 + k * 6;
     swPF.frequency.setTargetAtTime(2400 + k * 5000, t, .1);
@@ -815,7 +815,7 @@ body.desk .mbtns button:hover{opacity:1}
     setFreq(semi + octave, t);
     env.gain.cancelScheduledValues(t);
     // boss fights with their own track (Квадрат, Суперпила, Wavetable): the level arp steps aside so the fight IS the music
-    const bossTrack = boss && !boss.dead && boss.t > 1 && ['scales', 'chords', 'harm', 'crush'].includes(boss.B.kind);
+    const bossTrack = boss && !boss.dead && boss.t > 1 && ['pwm', 'chords', 'harm', 'crush'].includes(boss.B.kind);
     if (bossTrack) env.gain.setTargetAtTime(0, t, .05);
     else blip(t, .3, d);
     if (curWave === 'mdr' && !bossTrack) {
@@ -1077,6 +1077,7 @@ body.desk .mbtns button:hover{opacity:1}
     octave = 0; jumpOct = 0; visOct = 0; setWave('sine'); curMode = level;
     banner = { t: 0, l1: `Уровень ${level + 1}`, l2: L.name };
   }
+  let rectAt = -1e9;
   function spawn() {
     const L = LEVELS[level], len = levelLen();
     if (nextX - levelStart > len) {
@@ -1095,7 +1096,10 @@ body.desk .mbtns button:hover{opacity:1}
       if (r < pTall) kind = pick(['pi', 'sqrt']);
       else if (r < pTall + L.pCeil) kind = pick(L.ceil);
       else kind = pick(L.ground);
+      // rectify is a nuisance in bulk: half as likely, and never within ~3000 units of the last one
+      if (kind === 'rect' && (nextX - rectAt < 3000 || Math.random() < .5)) kind = pick(L.ground.filter(k => k !== 'rect'));
     }
+    if (kind === 'rect') rectAt = nextX;
     const ob = makeOb(kind, nextX);
     tagHint(ob);
     obstacles.push(ob); levelSpawn++;
@@ -1133,9 +1137,9 @@ body.desk .mbtns button:hover{opacity:1}
   function spawnBoss() {
     const key = LEVELS[level].boss, B = BOSSES[key];
     boss = { key, B, hp: B.hp, max: B.hp, t: 0, x: WORLD_W + 90, atkT: 1.6, harmT: 1.0, pillT: 6, hitT: 0, dead: false, deadT: 0, told: false,
-      ph: 0, amp: SQ_NORM, duty: .5, scT: .6, dirNow: 1, prevDir: 1, flipT: -9, jumpDir: 0, jumpT: -9,
+      duty: .5, base: .5, chain: 0, lastH: 0,
       bits: 8, dropT: 1, active: [], captured: [], flash: Array(8).fill(0), rem: [9, 8, 7, 6, 5, 4, 3, 2], removed: [],
-      mode: 'shield', modeT: 2.4, chord: 'Am', next: pick(CHORD_NAMES), glitch: 0, glitchT: .6, pfT: 0, btnT: 2.2, cluster: 'C·C♯·D·F♯' };
+      mode: 'shield', modeT: 2.4, chord: 'Am', next: pick(CHORD_NAMES), glitch: 0, glitchT: .6, pfT: .6, btnT: 2.2, cluster: 'C·C♯·D·F♯' };
     platforms = []; idxTokens = []; fmIndex = 0; standing = null;
     pills = []; modeCaps = []; if (power) endPower();
     if (!B.partialDmg) pickups = [];
@@ -1239,8 +1243,8 @@ body.desk .mbtns button:hover{opacity:1}
     if (back) { b.rem.push(back); b.rem.sort((x, y) => y - x); b.hp = b.rem.length; setDubLayers(b.hp); }
     b.hitT = .25;
     if (god) { invulnT = .8; tones([0, 6], 'sawtooth', .04, .06, .2); buzz(60); }
-    const pre = !god && toast && toast.color === COL.red && toast.t === 0 ? toast.text + ' · ' : '';
-    toast = { t: 0, text: pre + (back ? `h${back} вернулась в таблицу` : 'красный выстрел'), color: COL.red };
+    const pre = !god && toast && toast.color === COL.red && toast.t === 0 ? `−${HIT_COST} ◎ · ` : '';
+    toast = { t: 0, text: pre + (back ? `h${back} вернулась` : 'мимо!'), color: COL.red };
   }
   function allyHarm() {
     sfxFM(4 + Math.random() * 3, .45, pick([-12, -9, -5]), .13, 1.41);
@@ -1253,13 +1257,13 @@ body.desk .mbtns button:hover{opacity:1}
     if (tok.k === nx) {
       b.rem = b.rem.filter(k => k !== nx); b.removed.push(nx);
       tones([24 + 12 - nx, 36 - nx], 'sine', .03, .1, .3);
-      toast = { t: 0, text: `h${nx} снята · осталось ${b.rem.length}`, color: COL.ch4 };
+      toast = { t: 0, text: `h${nx} снята`, color: COL.ch4 };
       hitBoss(1, 'harm');
     } else {
       const back = b.removed.pop();
       if (back) { b.rem.push(back); b.rem.sort((x, y) => y - x); b.hp = b.rem.length; setDubLayers(b.hp); }
       tones([0, 6], 'sawtooth', .04, .06, .2);
-      toast = { t: 0, text: back ? `h${tok.k} не по порядку: h${back} вернулась в таблицу` : `h${tok.k} не по порядку: сначала h${nx}`, color: COL.red };
+      toast = { t: 0, text: back ? `не по порядку · h${back} вернулась` : `сначала h${nx}`, color: COL.red };
       buzz(60);
     }
   }
@@ -1287,7 +1291,7 @@ body.desk .mbtns button:hover{opacity:1}
     levelPartials -= lost; invulnT = 1.6;
     for (let i = 0; i < lost; i++) pickups.push({ x: dist + HERO_X + 70 + i * 30 + R(-6, 6), h: R(18, 78), got: false, t: 0, seed: R(0, 6), lost: true, age: 0 });
     tones([12, 7, 3, 0], 'square', .05, .07, .14); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
-    toast = { t: 0, text: levelPartials ? `−${lost} партиала · осталось ${levelPartials}` : `−${lost} партиала · следующее попадание — конец`, color: COL.red };
+    toast = { t: 0, text: levelPartials ? `−${lost} ◎ · осталось ${levelPartials}` : `−${lost} ◎ · ещё удар — конец`, color: COL.red };
     if (!reduced) shake = .25;
   }
   function loseIndex() {
@@ -1316,33 +1320,34 @@ body.desk .mbtns button:hover{opacity:1}
       toast = { t: 0, text: 'β = 0. Собери индексы', color: COL.dim };
     }
   }
-  // --- Квадрат: his duty cycle swings by itself like a pendulum. Scales roll in, two pans each: + duty and − duty.
-  //     Land on the pan that pushes the way the PWM is already moving and the swing grows, like pumping a swing.
-  //     The wrong pan damps it back towards a tidy 50%. Push the duty past 0% or 100% and the square is gone.
-  const SQ_NORM = .22, SQ_EDGE = .485;
-  const sqDir = b => (Math.cos(b.ph) >= 0 ? 1 : -1); // where the needle is moving right now; flips exactly at the extremes
-  function updateScales(dt) {
+  // --- Квадрат: green pulse platforms stream in. Every one you land on collapses under you and pushes his duty cycle
+  //     wider; chaining them without touching the ground pushes harder. Standing on the ground lets him settle back
+  //     towards a tidy 50%. Push the duty to 100% and the square becomes plain DC — Меандр is free.
+  const SQ_STEP = .06, SQ_CHAIN = .025, SQ_RELAX = .045, SQ_WIN = .97;
+  function updatePwm(dt) {
     const b = boss;
-    b.ph += dt * (1 + Math.max(0, b.amp - SQ_NORM) * 1.6); // he swings faster the closer he gets to the edge
-    const d = sqDir(b);
-    if (d !== b.dirNow) { b.prevDir = b.dirNow; b.dirNow = d; b.flipT = b.t; }
-    b.amp += (SQ_NORM - b.amp) * (1 - Math.exp(-dt * .12));
-    b.duty = .5 + b.amp * Math.sin(b.ph);
+    b.duty = clamp(b.base + .03 * Math.sin(b.t * 3.1), .02, .99); // a living PWM, never quite still
+    if (onGround && !standing) { b.base = Math.max(.5, b.base - SQ_RELAX * dt); b.chain = 0; }
     trackSquare(dt);
-    if (b.amp >= SQ_EDGE && (b.duty >= .985 || b.duty <= .015)) {
-      toast = { t: 0, text: b.duty > .5 ? 'duty 100%: квадрат стал постоянным током' : 'duty 0%: квадрат исчез', color: COL.mdr };
+    if (b.base >= SQ_WIN) {
+      toast = { t: 0, text: '100% · ПОСТОЯННЫЙ ТОК', color: COL.mdr };
+      for (const pf of platforms) if (pf.kind === 'pulse' && pf.fallT < 0) pf.fallT = .2;
       hitBoss(1, 'pwm');
       return;
     }
-    for (const pf of platforms) if (pf.kind === 'pan') pf.h = 44 - pf.sign * (b.duty - .5) * 34;
-    b.scT -= dt;
-    if (b.scT <= 0) {
-      const x0 = dist + WORLD_W + 30, first = Math.random() < .5 ? 1 : -1;
-      const a = { kind: 'pan', sign: first, x: x0, w: 54, h: 44, dip: 0 };
-      const c = { kind: 'pan', sign: -first, x: x0 + 150, w: 54, h: 44, dip: 0 };
-      a.mate = c; c.mate = a; a.lead = true;
-      platforms.push(a, c);
-      b.scT = (204 + R(110, 190)) / speed;
+    for (const pf of platforms) {
+      if (pf.kind !== 'pulse' || pf.fallT < 0) continue;
+      pf.fallT += dt;
+      if (pf.fallT < .3) continue;                      // a short wobble before it gives way
+      pf.fallV += 900 * dt; pf.h -= pf.fallV * dt;
+      if (pf.h <= 0) { pf.gone = true; if (standing === pf) { standing = null; y = 0; } }
+    }
+    b.pfT -= dt;
+    if (b.pfT <= 0) {
+      const h = pick([28, 46, 64].filter(v => v !== b.lastH));
+      b.lastH = h;
+      platforms.push({ kind: 'pulse', x: dist + WORLD_W + 30, w: 58, h, fallT: -1, fallV: 0 });
+      b.pfT = R(150, 205) / speed;
     }
   }
   // --- Биткрашер: it has squeezed everything to 8 bits — the screen goes blocky, the arp goes gritty.
@@ -1359,17 +1364,17 @@ body.desk .mbtns button:hover{opacity:1}
     const b = boss; if (!b || b.dead) return;
     if (k.val) {
       b.bits = Math.min(16, b.bits + 1); tones([12 + b.bits, 19 + b.bits], 'square', .04, .05, .12);
-      if (b.bits % 4 === 0 && b.bits < 16) { toast = { t: 0, text: `Чекпоинт: ${b.bits} бит`, color: COL.ch4 }; buzz(30); }
+      if (b.bits % 4 === 0 && b.bits < 16) { toast = { t: 0, text: `чекпоинт ${b.bits}`, color: COL.ch4 }; buzz(30); }
     }
     else {
       // checkpoints at 4 / 8 / 12: a zero above one rolls back to it, a zero right on one drops a step lower (down to 2 bits)
       const cp = Math.floor(b.bits / 4) * 4, from = b.bits;
       b.bits = b.bits > cp && cp >= 4 ? cp : Math.max(2, cp - 4);
       noise(.25, 'lowpass', 1400, 150, .3); tones([0, -5, -12], 'square', .05, .05, .15); buzz(70);
-      toast = { t: 0, text: `Ноль: ${from} → ${b.bits} бит${b.bits <= 2 ? ' · дно' : ''}`, color: COL.red };
+      toast = { t: 0, text: `0 · ${from} → ${b.bits} бит`, color: COL.red };
     }
     setCrushBits(b.bits);
-    if (b.bits >= 16) { setCrushBits(16); toast = { t: 0, text: '16 бит: разрядность возвращена', color: COL.ch4 }; hitBoss(1, 'crush'); }
+    if (b.bits >= 16) { setCrushBits(16); toast = { t: 0, text: '16 бит!', color: COL.ch4 }; hitBoss(1, 'crush'); }
   }
   const crushPx = () => boss && boss.B.kind === 'crush' && !boss.dead ? Math.max(1, Math.round((16 - boss.bits) * .9)) : 1;
 
@@ -1389,7 +1394,7 @@ body.desk .mbtns button:hover{opacity:1}
     if (hit !== undefined) {
       b.captured.push(hit); b.flash[hit] = 1; boss.hitT = .15;
       tones([LEVELS[level].prog[0].t[hit % 3] + 12, LEVELS[level].prog[0].t[hit % 3] + 24], 'sine', .02, .12, .35);
-      toast = { t: 0, text: `Шаг ${hit + 1} твой · ${b.captured.length}/${b.active.length}`, color: COL.ch1 };
+      toast = { t: 0, text: `шаг ${b.captured.length}/${b.active.length}`, color: COL.ch1 };
       if (b.captured.length >= b.active.length) hitBoss(1, 'seq');
     } else if (cands.map(st).some(i => b.active.includes(i))) {
       // on a step you already own: nothing happens
@@ -1398,20 +1403,18 @@ body.desk .mbtns button:hover{opacity:1}
       b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
       b.flash = b.flash.map(() => .8); boss.hitT = .2;
       tones([-1, -6], 'square', .05, .06, .2); noise(.12, 'highpass', 2000, 5000, .2);
-      toast = { t: 0, text: `Мимо такта: битшифт ${sh > 0 ? '≫' : '≪'} ${Math.abs(sh)}`, color: COL.red };
+      toast = { t: 0, text: `мимо · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}`, color: COL.red };
     }
   }
   function landOn(pf) {
     if (!boss || boss.dead || pf.used) return;
-    if (pf.kind === 'pan') {
-      pf.used = true; pf.dip = 1; if (pf.mate) pf.mate.dip = -1;
-      // fair judging: the hint at take-off counts, and so does the old direction just after a flip
-      const right = pf.sign === sqDir(boss)
-        || (boss.jumpDir === pf.sign && boss.t - boss.jumpT < 1.6)
-        || (boss.prevDir === pf.sign && boss.t - boss.flipT < .5);
-      boss.jumpDir = 0;
-      if (right) { boss.amp += .075; boss.hitT = .2; tones([24, 31].map(x => x + Math.round((boss.duty - .5) * 12)), 'square', .05, .06, .18); toast = { t: 0, text: `${pf.sign > 0 ? '+' : '−'} duty: ШИМ раскачивается`, color: COL.ch4 }; }
-      else { boss.amp = Math.max(.14, boss.amp - .1); tones([0, -5], 'square', .06, .05, .2); toast = { t: 0, text: 'Не та чаша: ШИМ вернулся к норме', color: COL.red }; }
+    if (pf.kind === 'pulse') {
+      pf.used = true; pf.fallT = 0;
+      const b = boss; b.chain++;
+      const gain = SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
+      b.base = Math.min(1, b.base + gain); b.hitT = .2;
+      tones([24, 31].map(x => x + Math.round((b.base - .5) * 14)), 'square', .05, .06, .18);
+      toast = { t: 0, text: b.chain > 1 ? `+${Math.round(gain * 100)}% · СЕРИЯ ×${b.chain}` : `+${Math.round(gain * 100)}%`, color: COL.ch4 };
       return;
     }
     if (pf.kind === 'fm') {
@@ -1423,11 +1426,11 @@ body.desk .mbtns button:hover{opacity:1}
       pf.used = true;
       chordSfx(semis.map(x => x + 12), 'sine', [0], .16, 1.2, 6000);
       hitBoss(1, 'chord', [pf.x - dist + pf.w / 2, GROUND - pf.h], COL.tri);
-      toast = { t: 0, text: `${pf.chord} в ${pf.chord}!`, color: COL.tri };
+      toast = { t: 0, text: `${pf.chord}!`, color: COL.tri };
       if (!boss.dead) startShield();
     } else if (boss.mode === 'shield') {
       noise(.2, 'lowpass', 700, 120, .35);
-      toast = { t: 0, text: 'Блок: атональный щит', color: COL.red };
+      toast = { t: 0, text: 'щит!', color: COL.red };
     } else {
       chordSfx(semis.concat(CHORDS[boss.chord]).map(x => x + 12), 'sine', [0], .06, .5, 3000);
       toast = { t: 0, text: `${pf.chord} ≠ ${boss.chord}`, color: COL.dim };
@@ -1455,7 +1458,6 @@ body.desk .mbtns button:hover{opacity:1}
 
   const triOn = () => power && power.type === 'tri';
   function noteJumpDir() {
-    if (boss && boss.B.kind === 'scales' && !boss.dead) { boss.jumpDir = sqDir(boss); boss.jumpT = boss.t; }
     if (boss && boss.B.kind === 'seq' && !boss.dead) seqJudge();
   }
   function doJump() { noteJumpDir(); vy = JUMP_V * (triOn() ? 1.05 : 1) * (fx.rect > 0 ? .72 : 1); onGround = false; standing = null; airJumps = 1; buffer = 0; jumpOct = 12; syncOctave(); flash(); }
@@ -1892,7 +1894,7 @@ body.desk .mbtns button:hover{opacity:1}
       if (fx.rect > 0) { fx.rect -= dt; if (fx.rect <= 0) setRect(false); }
       if (fx.ring > 0) { fx.ring -= dt; fx.ringPh += dt * 1.15; if (fx.ring <= 0) setRing(false); }
       const over = pf => HERO_X + HERO_W - 10 > pf.x - dist && HERO_X + 10 < pf.x - dist + pf.w;
-      if (onGround && standing && standing.kind === 'pan') y = standing.h; // ride the pan as the beam tilts
+      if (onGround && standing && standing.kind === 'pulse') y = standing.h; // ride the pan as the beam tilts
       if (onGround && standing && !over(standing)) { standing = null; onGround = false; vy = 0; airJumps = 1; } // walked off a platform
       if (!onGround) {
         let gm = foldHeld() && vy < 250 ? 1.9 : 1;
@@ -1920,7 +1922,7 @@ body.desk .mbtns button:hover{opacity:1}
       }
       if (boss) updateBoss(dt);
       for (const o of obstacles) if (o.vx && !o.broken) o.x -= o.vx * dt;
-      platforms = platforms.filter(pf => pf.x + pf.w - dist > -40 || pf === standing);
+      platforms = platforms.filter(pf => !pf.gone && (pf.x + pf.w - dist > -40 || pf === standing));
       for (const k of idxTokens) {
         k.t += dt;
         if (!k.settled) { k.x += k.vx * dt; k.vh -= 260 * dt; k.h += k.vh * dt; if (k.vh < 0 && k.h <= k.th) { k.h = k.th; k.settled = true; } }
@@ -2020,7 +2022,7 @@ body.desk .mbtns button:hover{opacity:1}
     if (!boss.B.noAtk) boss.atkT -= dt;
     if (boss.atkT <= 0) { bossAttack(); boss.atkT = boss.B.atkI ? R(boss.B.atkI[0], boss.B.atkI[1]) : lerp(1.05, 1.7, boss.hp / boss.max) * R(.9, 1.15); }
     if (boss.B.kind === 'chords') updateChords(dt);
-    if (boss.B.kind === 'scales') updateScales(dt);
+    if (boss.B.kind === 'pwm') updatePwm(dt);
     if (boss.B.kind === 'crush') updateCrush(dt);
     if (boss.B.kind === 'seq') updateSeq(dt);
     if (boss.B.kind === 'harm') { boss.shotT -= dt; if (boss.shotT <= 0) wtShoot(); }
@@ -2057,6 +2059,15 @@ body.desk .mbtns button:hover{opacity:1}
     ctx.font = `${weight} ${px}px ${family}`;
     ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle';
     ctx.fillText(s, sx, sy); ctx.restore();
+  }
+  // Text that changes (callouts, toasts): wipe the phosphor under its box first, so old words don't ghost through
+  function crispText(s, sx, sy, color, align = 'center', px = fontPx(), weight = 500, family = '"IBM Plex Mono", ui-monospace, Menlo, monospace', alpha = 1) {
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.font = `${weight} ${px}px ${family}`;
+    const w = ctx.measureText(s).width + px, x0 = align === 'center' ? sx - w / 2 : align === 'right' ? sx - w + px / 2 : sx - px / 2;
+    ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = Math.min(1, alpha * 1.5); ctx.fillRect(x0, sy - px * .75, w, px * 1.5);
+    ctx.restore();
+    textScreen(s, sx, sy, color, align, px, weight, family, alpha);
   }
   let shX = 0, shY = 0;
   const text = (s, wx, wy, color, align = 'center', px = fontPx(), weight = 500) =>
@@ -2129,7 +2140,7 @@ body.desk .mbtns button:hover{opacity:1}
       text(name, b.x, by - amp - 30, COL.red, 'center', fontPx(), 600);
       const pw = 9, gap = 3, tw = b.max * (pw + gap) - gap;
       ctx.save();
-      if (!['scales', 'crush', 'seq', 'harm'].includes(b.B.kind)) for (let i = 0; i < b.max; i++) {
+      if (!['pwm', 'crush', 'seq', 'harm'].includes(b.B.kind)) for (let i = 0; i < b.max; i++) {
         ctx.fillStyle = i < b.hp ? COL.red : 'rgba(255,77,61,.18)';
         ctx.fillRect(b.x - tw / 2 + i * (pw + gap), by - amp - 18, pw, 4);
       }
@@ -2281,6 +2292,21 @@ body.desk .mbtns button:hover{opacity:1}
     ctx.restore();
   }
 
+  // Boss fights: one big, short line at the top (what matters now), an optional bar, a few words under it
+  function bossCallout(main, sub, color, frac = null) {
+    const fp = fontPx(), big = clamp(cw / 20, 20, 38), y0 = 10 + fp * 1.9 + big * .55;
+    crispText(main, cw / 2, y0, color, 'center', big, 700, '"Unbounded", "Arial Black", sans-serif');
+    let yy = y0 + big * .7;
+    if (frac !== null) {
+      const bw = Math.min(260, cw * .6);
+      ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = 'rgba(222,218,209,.14)'; ctx.fillRect(cw / 2 - bw / 2, yy, bw, 6);
+      ctx.fillStyle = color; ctx.fillRect(cw / 2 - bw / 2, yy, bw * clamp(frac, 0, 1), 6); ctx.restore();
+      yy += 14;
+    }
+    if (sub) crispText(sub, cw / 2, yy + fp * .5, COL.silk, 'center', fp + 1, 600);
+    return yy + fp * 1.3;
+  }
   // partials needed for the boss: Lissajous icon, big count, a bar
   function drawPartialGate(yy, tnow) {
     const need = NEED[level], have = Math.min(levelPartials, need), done = have >= need, fp = fontPx();
@@ -2321,7 +2347,7 @@ body.desk .mbtns button:hover{opacity:1}
     text('1', 11, GROUND - 9, COL.ch1, 'left', fontPx() - 1);
 
     // Квадрат fight: his live PWM painted big across the background, so the duty swing reads at a glance
-    if (boss && boss.B.kind === 'scales' && !boss.dead) {
+    if (boss && boss.B.kind === 'pwm' && !boss.dead) {
       const d = clamp(boss.duty, .01, .99), per = WORLD_W / 3, hi = GROUND - 175, lo = GROUND - 2, sh = (tnow * 30) % per, q = [];
       for (let k = -1; k <= 3; k++) {
         const x0 = k * per - sh, x1 = x0 + per * d;
@@ -2329,8 +2355,6 @@ body.desk .mbtns button:hover{opacity:1}
         fillPoly([x0, lo, x0, hi, x1, hi, x1, lo], COL.red, .022);
       }
       trace(q, COL.red, 1.2, .16);
-      const wider = sqDir(boss) > 0;
-      text(wider ? '◀ шире ▶  ·  чаша +' : '▶ уже ◀  ·  чаша −', WORLD_W / 2, GROUND - 200, 'rgba(120,236,126,.55)', 'center', fontPx() + 4, 700);
     }
 
     // level trigger marker
@@ -2436,24 +2460,11 @@ body.desk .mbtns button:hover{opacity:1}
         const c = pf.used ? COL.ch4 : target ? COL.ch1 : COL.tri;
         for (let k = 0; k < 3; k++) trace([px, py + k * 3.2, px + pf.w, py + k * 3.2], c, k ? 1 : 1.9, k ? .4 : 1);
         text(pf.chord, px + pf.w / 2, py - 10, c, 'center', fontPx() + (target ? 3 : 1), 700);
-      } else if (pf.kind === 'pan') {
-        pf.dip *= Math.exp(-dt * 6);
-        const go = boss && !boss.dead && !pf.used && pf.sign === sqDir(boss); // the pan that is sinking right now
-        const off = pf.dip * 5, c = pf.used ? COL.dim : go ? COL.ch4 : 'rgba(255,77,61,.55)', pyy = py + off;
-        if (go) fillPoly([px, pyy, px + 6, pyy + 8, px + pf.w - 6, pyy + 8, px + pf.w, pyy], COL.ch4, .25);
-        trace([px, pyy, px + 6, pyy + 8, px + pf.w - 6, pyy + 8, px + pf.w, pyy], c, 1.8); // the pan
-        trace([px + pf.w / 2, pyy - 16, px + 6, pyy, px + pf.w / 2, pyy - 16, px + pf.w - 6, pyy], c, .9, .5); // chains
-        if (pf.lead && pf.mate) { // beam and post
-          const mx = pf.mate.x - dist + pf.mate.w / 2, my2 = GROUND - pf.mate.h + pf.mate.dip * 5 - 16, ax = px + pf.w / 2, ay = pyy - 16;
-          const bc = pf.used && pf.mate.used ? COL.dim : COL.red;
-          trace([ax, ay, mx, my2], bc, 1.6);
-          const cx2 = (ax + mx) / 2, cy2 = (ay + my2) / 2;
-          trace([cx2, cy2, cx2, GROUND], bc, 1.2, .6);
-          trace([cx2 - 8, GROUND, cx2 + 8, GROUND], bc, 1.6, .6);
-          if (boss && !boss.dead) text(`${Math.round(boss.duty * 100)}%`, cx2, cy2 - 12, COL.red, 'center', fontPx(), 700);
-        }
-        text(go ? (pf.sign > 0 ? '▼ сюда · +' : '▼ сюда · −') : (pf.sign > 0 ? '+ duty' : '− duty'), px + pf.w / 2, pyy - 26,
-          pf.used ? COL.dim : go ? COL.ch4 : 'rgba(255,77,61,.6)', 'center', fontPx() + (go ? 2 : 0), 700);
+      } else if (pf.kind === 'pulse') {
+        const wob = pf.fallT >= 0 && pf.fallT < .3 ? R(-1, 1) : 0, xx = px + wob;
+        const c = pf.used ? 'rgba(255,77,61,.6)' : COL.ch4, q = [xx, py + 11, xx, py, xx + pf.w, py, xx + pf.w, py + 11];
+        if (!pf.used) fillPoly([xx, py, xx + pf.w, py, xx + pf.w, py + 11, xx, py + 11], COL.ch4, .14);
+        trace(q, c, pf.used ? 1.2 : 2, pf.used ? .6 : 1); // one square pulse: up, across, down
       } else {
         const lit = fmLit(pf), c = COL.math, q = [px, py, px + pf.w, py, px + pf.w, py + 9, px, py + 9, px, py];
         trace([px + pf.w / 2, py + 9, px + pf.w / 2, GROUND], c, 1, .22);
@@ -2589,21 +2600,15 @@ body.desk .mbtns button:hover{opacity:1}
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
-      textScreen(`ШАГИ ${boss.captured.length}/${boss.active.length} · прыгай, когда метка на красном`, cw / 2, pad + fp * 2.4, COL.red, 'center', fp, 700);
-    if (boss && boss.B.kind === 'scales' && !boss.dead && !storyQ) {
-      const yy = pad + fp * 2.4, bw = Math.min(220, cw * .5), x0 = cw / 2 - bw / 2, d = boss.duty, dir = sqDir(boss);
-      textScreen(`PWM ${Math.round(d * 100)}% · прыгай на опускающуюся чашу`, cw / 2, yy, COL.red, 'center', fp, 700);
-      ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const my = yy + fp * .8;
-      ctx.fillStyle = 'rgba(255,77,61,.15)'; ctx.fillRect(x0, my, bw, 5);
-      ctx.fillStyle = COL.red; ctx.fillRect(x0, my - 2, 3, 9); ctx.fillRect(x0 + bw - 3, my - 2, 3, 9);
-      const sw = bw * boss.amp; ctx.fillStyle = 'rgba(120,236,126,.35)'; ctx.fillRect(cw / 2 - sw, my, sw * 2, 5); // swing reach
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 + bw * d - 1.5, my - 4, 3, 13);
-      ctx.restore();
+      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, 'метка на красном — прыгай', COL.red, boss.captured.length / boss.active.length);
+    if (boss && boss.B.kind === 'chords' && !boss.dead && !storyQ) {
+      if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
+      else bossCallout('ЩИТ', 'жди аккорд', COL.red);
     }
+    if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
+      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.chain > 1 ? `серия ×${boss.chain}` : 'прыгай по зелёным', COL.red, (boss.base - .5) / (SQ_WIN - .5));
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
-      const nx = harmNext(), yy = pad + fp * 2.4;
-      textScreen(`лови зелёные · красный вернёт гармонику · следующая h${nx}`, cw / 2, yy, COL.ch4, 'center', fp, 700);
+      const nx = harmNext(), yy = bossCallout(`СНИМИ h${nx}`, 'зелёные лови · красные мимо', COL.ch4) - fp * .4;
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.font = `700 ${fp}px "IBM Plex Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const cellW = Math.min(30, cw / 13), x0 = cw / 2 - cellW * 4.5;
@@ -2668,7 +2673,9 @@ body.desk .mbtns button:hover{opacity:1}
     }
     if (toast) {
       const t = toast.t, a = t < .15 ? t / .15 : t > 1.3 ? Math.max(0, (1.8 - t) / .5) : 1;
-      textScreen(toast.text, cw / 2, ch * .46, toast.power && power ? powerColor(power.type, tnow) : toast.color, 'center', fp + 1, 600, undefined, a);
+      const bt = boss && !boss.dead;
+      crispText(bt ? toast.text.toUpperCase() : toast.text, cw / 2, ch * .46, toast.power && power ? powerColor(power.type, tnow) : toast.color, 'center',
+        bt ? clamp(cw / 26, 16, 28) : fp + 1, bt ? 700 : 600, bt ? '"Unbounded", "Arial Black", sans-serif' : undefined, a);
     }
     drawTut();
   }
@@ -2684,11 +2691,13 @@ body.desk .mbtns button:hover{opacity:1}
     fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fxCv.width, fxCv.height);
     fctx.imageSmoothingEnabled = false; fctx.drawImage(tmpCv, 0, 0, fxCv.width, fxCv.height);
     if (storyQ) return;
-    const fp = fontPx(), yy = 10 + fp * 2.4, cell = Math.min(10, cw / 34), gap = 2, tw = 16 * (cell + gap) - gap;
+    const fp = fontPx(), big = clamp(cw / 20, 20, 38), cell = Math.min(12, cw / 30), gap = 2, tw = 16 * (cell + gap) - gap;
     fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    fctx.font = `700 ${fp}px "IBM Plex Mono", ui-monospace, monospace`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
-    const cp = Math.floor(boss.bits / 4) * 4;
-    fctx.fillStyle = COL.ch4; fctx.fillText(`РАЗРЯДНОСТЬ ${boss.bits}/16 · ${cp >= 4 ? 'чекпоинт ' + cp : 'дно'} · 0 = вниз`, cw / 2, yy);
+    fctx.font = `700 ${big}px "Unbounded", "Arial Black", sans-serif`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+    const y0 = 10 + fp * 1.9 + big * .55, yy = y0 + big * .7 - fp * .8;
+    fctx.fillStyle = COL.ch4; fctx.fillText(`${boss.bits}/16 БИТ`, cw / 2, y0);
+    fctx.font = `600 ${fp + 1}px "IBM Plex Mono", ui-monospace, monospace`; fctx.fillStyle = COL.silk;
+    fctx.fillText('лови 1 · не бери 0', cw / 2, yy + fp * .8 + 22);
     for (let i = 0; i < 16; i++) {
       fctx.fillStyle = i < boss.bits ? COL.ch4 : 'rgba(120,236,126,.18)'; fctx.fillRect(cw / 2 - tw / 2 + i * (cell + gap), yy + fp * .8, cell, 5);
       if (i === 4 || i === 8 || i === 12) { fctx.fillStyle = '#ffffff'; fctx.fillRect(cw / 2 - tw / 2 + i * (cell + gap) - 2, yy + fp * .8 - 3, 1.5, 11); } // checkpoint marks
