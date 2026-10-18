@@ -263,15 +263,15 @@ body.desk .mbtns button:hover{opacity:1}
         <div class="testrow">
           <select id="testSel">
             <option value="op">Вступление</option>
-            <option value="l0">Уровень 1 · ля эолийский</option>
+            <option value="l0">Уровень 1 · A Aeolian</option>
             <option value="b0">Босс · Квадрат</option>
-            <option value="l1">Уровень 2 · ре дорийский</option>
+            <option value="l1">Уровень 2 · D Dorian</option>
             <option value="b1">Босс · Биткрашер</option>
-            <option value="l2">Уровень 3 · ми фригийский</option>
+            <option value="l2">Уровень 3 · E Phrygian</option>
             <option value="b2">Босс · Суперпила</option>
-            <option value="l3">Уровень 4 · фа лидийский</option>
+            <option value="l3">Уровень 4 · F Lydian</option>
             <option value="b3">Босс · Секвенсор</option>
-            <option value="l4">Уровень 5 · до целотонный</option>
+            <option value="l4">Уровень 5 · C Whole-tone</option>
             <option value="b4">Босс · Wavetable</option>
             <option value="free">∞ Свободный режим</option>
           </select>
@@ -318,9 +318,9 @@ body.desk .mbtns button:hover{opacity:1}
         <kbd>P</kbd> пауза, <kbd>M</kbd> звук, <kbd>G</kbd> бессмертие для тестов. Нет звука на iPhone — проверь бесшумный режим.
       </p>
       <p class="modes">
-        <span>1</span> ля эолийский · <span>2</span> ре дорийский · <span>3</span> ми фригийский · <span>4</span> фа лидийский · <span>5</span> до целотонный.
+        <span>1</span> A Aeolian · <span>2</span> D Dorian · <span>3</span> E Phrygian · <span>4</span> F Lydian · <span>5</span> C Whole-tone.
         Линия <span>T</span> на экране — триггер следующего уровня.
-        После финала открывается <span>∞</span> свободная развёртка: золотые капсулы ладов переключают музыку, там ещё ионийский, миксолидийский и гармонический минор.
+        После финала открывается <span>∞</span> свободная развёртка: золотые капсулы ладов переключают музыку, там ещё C Ionian, G Mixolydian и A Harmonic minor.
       </p>
     </div>
   </footer>
@@ -451,19 +451,19 @@ body.desk .mbtns button:hover{opacity:1}
   const ALL_G = ['square','saw','tri','tan','gauss','fft','am','redux','rect','ring'];
   const ALL_C = ['sinc','floor','noise','inv','comb','sh'];
   const LEVELS = [
-    { key:'A', name:'Ля эолийский', abbr:'эол', scope:'A AEOL', bpm:104, speed0:230, len:6000, pat:[0,1,2,3,4,3,2,1], boss:'dsq',
+    { key:'A', name:'A Aeolian', abbr:'aeol', scope:'A AEOL', bpm:104, speed0:230, len:6000, pat:[0,1,2,3,4,3,2,1], boss:'dsq',
       prog:[{t:[0,3,7],r:-12},{t:[-4,0,3],r:-16},{t:[-2,3,7],r:-9},{t:[-2,2,5],r:-14}],
       ground:['square','saw','tri','tan','gauss'], ceil:['sinc','floor','noise','inv'], pTall:.12, pCeil:.3, intro:['tri','sinc','square'] },
-    { key:'D', name:'Ре дорийский', abbr:'дор', scope:'D DOR', bpm:110, speed0:250, len:7500, pat:[0,2,1,3,2,4,3,5],
+    { key:'D', name:'D Dorian', abbr:'dor', scope:'D DOR', bpm:110, speed0:250, len:7500, pat:[0,2,1,3,2,4,3,5],
       prog:[{t:[-7,-4,0,3],r:-19},{t:[-2,2,5],r:-14},{t:[0,3,7,10],r:-12},{t:[-9,-5,-2],r:-21}],
       ground:['fft','fft','square','tri','gauss','tan','rect'], ceil:['comb','comb','sinc','noise'], pTall:.12, pCeil:.32, intro:['fft','comb','rect'], boss:'bc' },
-    { key:'E', name:'Ми фригийский', abbr:'фриг', scope:'E PHRY', bpm:116, speed0:265, len:7500, pat:[0,1,2,1,3,2,4,2], boss:'ssaw',
+    { key:'E', name:'E Phrygian', abbr:'phry', scope:'E PHRY', bpm:116, speed0:265, len:7500, pat:[0,1,2,1,3,2,4,2], boss:'ssaw',
       prog:[{t:[-5,-2,2],r:-17},{t:[-4,0,3],r:-16},{t:[-5,-2,2],r:-17},{t:[-7,-4,0],r:-19}],
       ground:['redux','redux','am','am','saw','fft','tan','ring','rect'], ceil:['sh','sh','comb','floor','inv'], pTall:.14, pCeil:.33, intro:['redux','sh','am','ring'] },
-    { key:'F', name:'Фа лидийский', abbr:'лид', scope:'F LYD', bpm:122, speed0:285, len:9000, pat:[0,1,2,3,4,5,3,1],
+    { key:'F', name:'F Lydian', abbr:'lyd', scope:'F LYD', bpm:122, speed0:285, len:9000, pat:[0,1,2,3,4,5,3,1],
       prog:[{t:[-4,0,3,7],r:-16},{t:[-2,2,5],r:-16},{t:[-4,0,3,7],r:-16},{t:[-5,-2,2,5],r:-17}],
       ground:ALL_G, ceil:ALL_C, pTall:.17, pCeil:.34, intro:[], boss:'seq' },
-    { key:'C', name:'До целотонный', abbr:'цел', scope:'C WHOLE', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt',
+    { key:'C', name:'C Whole-tone', abbr:'whole', scope:'C WHOLE', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt',
       prog:[{t:[-9,-5,-1],r:-21},{t:[-7,-3,1],r:-19},{t:[-5,-1,3],r:-17},{t:[-3,1,5],r:-15}],
       ground:ALL_G, ceil:ALL_C, pTall:.18, pCeil:.35, intro:[] },
   ];
@@ -473,11 +473,11 @@ body.desk .mbtns button:hover{opacity:1}
   // steps = the scale's semitones, drawn on the capsule as a little staircase
   const STEPS = [[0,2,3,5,7,8,10],[0,2,3,5,7,9,10],[0,1,3,5,7,8,10],[0,2,4,6,7,9,11],[0,2,4,6,8,10]];
   const MODES = LEVELS.map((L, i) => ({ name: L.name, scope: L.scope, pat: L.pat, prog: L.prog, steps: STEPS[i] })).concat([
-    { name:'До ионийский', scope:'C ION', pat:[0,1,2,3,4,3,2,1], steps:[0,2,4,5,7,9,11],
+    { name:'C Ionian', scope:'C ION', pat:[0,1,2,3,4,3,2,1], steps:[0,2,4,5,7,9,11],
       prog:[{t:[3,7,10],r:-9},{t:[0,3,7],r:-12},{t:[-4,0,3],r:-16},{t:[-2,2,5],r:-14}] },
-    { name:'Соль миксолидийский', scope:'G MIX', pat:[0,2,1,3,2,4,3,1], steps:[0,2,4,5,7,9,10],
+    { name:'G Mixolydian', scope:'G MIX', pat:[0,2,1,3,2,4,3,1], steps:[0,2,4,5,7,9,10],
       prog:[{t:[-2,2,5],r:-14},{t:[-4,0,3],r:-16},{t:[-9,-5,-2],r:-21},{t:[-2,2,5],r:-14}] },
-    { name:'Ля гармонический', scope:'A HARM', pat:[0,1,2,3,4,3,2,1], steps:[0,2,3,5,7,8,11],
+    { name:'A Harmonic minor', scope:'A HARM', pat:[0,1,2,3,4,3,2,1], steps:[0,2,3,5,7,8,11],
       prog:[{t:[0,3,7],r:-12},{t:[-7,-4,0],r:-19},{t:[-5,-1,2],r:-17},{t:[0,3,7],r:-12}] },
   ]);
   const POWERS = {
@@ -2144,7 +2144,7 @@ body.desk .mbtns button:hover{opacity:1}
         if (hitBox(m.x - dist, m.h + Math.sin(phase * .5 + m.seed) * 3, 11)) {
           m.got = true; curMode = m.mode; pts += 20;
           tones(MODES[m.mode].steps.concat(12).map(x => x + 12), 'triangle', .045, .1, .25);
-          toast = { t: 0, text: `Лад: ${MODES[m.mode].name}`, color: COL_MODE };
+          toast = { t: 0, text: MODES[m.mode].name, color: COL_MODE };
         }
       }
       modeCaps = modeCaps.filter(m => m.x - dist > -30 && !m.got);
