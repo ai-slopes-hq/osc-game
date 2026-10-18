@@ -202,7 +202,8 @@ body.desk .mbtns button:hover{opacity:1}
   border:1px solid #5a5d63;border-radius:4px;padding:10px 16px;cursor:pointer}
 .mode2:hover{border-color:var(--ch1);color:var(--ch1)}
 .levels-l{flex-basis:100%;font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--silk-dim);text-align:center}
-@media (max-width:600px){.overlay.is-title h2,.overlay.is-title .chip{display:none}.ov .tip{font-size:10.5px}.ov h2{font-size:16px}.mode2,.modes-pick .start{padding:9px 12px}}
+@media (max-width:600px){.overlay.is-title .chip{display:none}.ov .tip{font-size:10.5px}.ov h2{font-size:20px}.mode2,.modes-pick .start{padding:12px 14px}}
+body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
 </style>
 </head>
 <body>
@@ -1776,7 +1777,7 @@ body.desk .mbtns button:hover{opacity:1}
     else { pts = 0; partials = 0; levelStartPts = 0; levelStartPartials = 0; bossCheckpoint = -1; }
     if (endless) bossCheckpoint = -1;
     state = 'play'; hideOverlay(); startMusic(); setMode(); touchHintT = 0; tut = null; slow = 1;
-    enterPlayMode();
+    document.body.classList.remove('at-title'); enterPlayMode(); layoutPlay();
     if (li === 0 && !retry && !endless) story(OPENING, null, makeOpening());
   }
   function levelUp() {
@@ -1930,6 +1931,7 @@ body.desk .mbtns button:hover{opacity:1}
     ovEl.style.setProperty('--chip', COL.ch1);
     chip.textContent = 'READY'; $('ovTitle').textContent = 'Ждём триггер';
     $('ovText').textContent = 'На осциллограф напали цифровые формы. Синус выходит на развёртку.'; $('ovText').classList.add('opt');
+    $('ovTitle').textContent = 'Приключения осциллятора'; document.body.classList.add('at-title'); layoutPlay();
     ovEl.classList.add('is-title');
     $('ovModes').hidden = false; $('ovBtn').hidden = true; $('ovBtn2').hidden = true; $('ovBtn3').hidden = true; $('ovTip').hidden = false;
     renderLevelChips(unlocked > 0);
@@ -1942,7 +1944,7 @@ body.desk .mbtns button:hover{opacity:1}
     else start(0, false);
   });
   $('ovBtn2').addEventListener('click', e => { e.stopPropagation(); bossCheckpoint = -1; lastEndless = false; start(0, false); });
-  $('ovBtn3').addEventListener('click', e => { // leave the full-screen game for the page
+  $('ovBtn3').addEventListener('click', e => { // back to the title screen
     e.stopPropagation();
     stopMusic(); if (ac && ac.state === 'suspended') ac.resume();
     state = 'title'; storyQ = null; boss = null; marker = null; setMode();
@@ -2031,7 +2033,7 @@ body.desk .mbtns button:hover{opacity:1}
     const ah = bezelEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     let w, h;
     if (aw > ah) { h = ah; w = Math.min(aw, ah * 1.6); }          // landscape: full height, thumbs at the sides
-    else { w = aw; h = Math.min(ah * .6, aw * 1.08); }           // portrait: scope on top, thumbs below
+    else { w = aw; h = state === 'title' ? ah : Math.min(ah * .6, aw * 1.08); } // portrait: the title fills the screen; in play the scope is on top, thumbs below
     screenEl.style.width = Math.floor(w) + 'px'; screenEl.style.height = Math.floor(h) + 'px';
   }
   // Desktop: the page is the game from the start, filling the window; F or ⛶ for real full screen
@@ -2043,17 +2045,16 @@ body.desk .mbtns button:hover{opacity:1}
     } catch (e) {}
   }
   $('mFs').addEventListener('click', e => { e.stopPropagation(); e.currentTarget.blur(); toggleFs(); });
+  // The page is the game on every device: the full-screen layout is on from the first frame (title included).
+  // On phones a run also asks for real full screen and keeps the display awake.
   function enterPlayMode() {
-    if (playMode || !(touchSeen || desk)) return;
-    playMode = true; document.body.classList.add('playing'); layoutPlay();
-    if (desk) return;
+    if (!playMode) { playMode = true; document.body.classList.add('playing'); layoutPlay(); }
+    if (desk || !touchSeen) return;
     try { const el = document.documentElement; if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (e) {}
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wakeLock = w; }).catch(() => {}); } catch (e) {}
   }
-  function exitPlayMode() {
-    if (!playMode || desk) return;
-    playMode = false; document.body.classList.remove('playing');
-    screenEl.style.width = ''; screenEl.style.height = '';
+  function exitPlayMode() { // back to the title: leave real full screen, keep the full-viewport layout
+    if (desk) return;
     try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
     try { if (wakeLock) wakeLock.release(); } catch (e) {}
     wakeLock = null;
@@ -3133,7 +3134,8 @@ body.desk .mbtns button:hover{opacity:1}
   $('testSel').addEventListener('keydown', e => e.stopPropagation());
   const syncTestPick = () => { const t = location.hash === '#test' || staging; document.querySelector('.testpick').hidden = !t; document.body.classList.toggle('testing', t); };
   syncTestPick(); addEventListener('hashchange', syncTestPick);
-  if (desk) { document.body.classList.add('desk'); $('mFs').hidden = !document.documentElement.requestFullscreen; enterPlayMode(); }
+  if (desk) { document.body.classList.add('desk'); $('mFs').hidden = !document.documentElement.requestFullscreen; }
+  enterPlayMode(); // full-viewport layout from the start, phones too
   showTitle();
   resize(); setMode(); hud();
   requestAnimationFrame(frame);
