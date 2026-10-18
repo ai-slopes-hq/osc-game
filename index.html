@@ -561,7 +561,7 @@ body.desk .mbtns button:hover{opacity:1}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0;
+  let swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -650,6 +650,8 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 0; i < 3; i++) pwmPad.push(makePWM(pF));
     swPF = pF;
     pF.connect(padG); padG.connect(pHP); pHP.connect(master);
+    // level band: pads, drum kit and bass parts go through one bus, so trance/modern can pump it from the kick
+    padBus = ac.createGain(); padBus.gain.value = 1; padBus.connect(master);
     osc.start(); fmOsc.start(); bass.start();
     setInterval(schedule, 20);
   }
@@ -777,6 +779,76 @@ body.desk .mbtns button:hover{opacity:1}
     if (s % 4 === 0) { const dw = boss && boss.duty !== undefined ? clamp(boss.duty, .03, .97) : .5; c.t.slice(0, 3).forEach((sm, i) => pwmSet(pwmPad[i], hz(sm), t, dw, .05)); padG.gain.setTargetAtTime(.045, t, .3); }
     swOn = true;
   }
+  // ---------- level band: each level has its own style under the Sine's arpeggio ----------
+  // L1 Квадрат — synth-pop, L2 Биткрашер — a hint of chiptune, L3 Суперпила — trance,
+  // L4 Секвенсор — glitch percussion, L5 Wavetable and free play — modern electronic.
+  function padNote(t, semi, dur, { type = 'sawtooth', det = [-8, 8], lp = 1800, vol = .02, att = .2, rel = .6, q = .7, sweep = 0 } = {}) {
+    const f = ac.createBiquadFilter(), g = ac.createGain(), end = t + dur + rel;
+    f.type = 'lowpass'; f.Q.value = q; f.frequency.setValueAtTime(lp, t);
+    if (sweep) f.frequency.exponentialRampToValueAtTime(lp * sweep, t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att);
+    g.gain.setTargetAtTime(vol * .85, t + att, dur * .5); g.gain.setTargetAtTime(0, t + dur, rel / 4);
+    for (const d of det) { const o = ac.createOscillator(); o.type = type; o.frequency.value = hz(semi); o.detune.value = d; o.connect(f); o.start(t); o.stop(end + .05); }
+    f.connect(g); g.connect(padBus);
+  }
+  function bandVoice(t, semi, type, vol, dur, lpF, att = .006) { // plucked bass/lead note on the band bus
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(hz(semi), t); f.type = 'lowpass'; f.frequency.value = lpF;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.setTargetAtTime(0, t + att, dur / 3);
+    o.connect(f); f.connect(g); g.connect(padBus); o.start(t); o.stop(t + dur * 1.6 + .05);
+  }
+  function kick(t, vol = .45, f1 = 45) { const k = fmVoice(t, 150, 1, 1.3, .32, vol, .04); k.frequency.exponentialRampToValueAtTime(f1, t + .11); }
+  const hat = (t, vol, len = .03, f = 7500) => noiseAt(t, len, 'highpass', f, vol);
+  const clap = (t, vol, f = 1800) => { noiseAt(t, .16, 'bandpass', f, vol); fmVoice(t, 200, 1.5, 3, .1, vol * .3, .05); };
+  function duck(t, depth = .35, back = .11) { padBus.gain.setTargetAtTime(depth, t, .006); padBus.gain.setTargetAtTime(1, t + .03, back); }
+  const chordUp = c => c.t.map(x => x + 12);
+  function levelBand(n, t, c, style, talk = false) {
+    const s = n % 16, d = stepDur(), bar = Math.floor(n / 16), barLen = d * 16;
+    if (talk) { // dialogue: a breakdown — just a soft pad, so the voices' key clicks carry
+      if (s === 0) c.t.forEach(x => padNote(t, x + 12, barLen * .95, { type: 'triangle', det: [-6, 6], lp: 1400, vol: .014, att: .4, rel: .8 }));
+      return;
+    }
+    if (style === 'pop') {            // synth-pop: punchy kit, octave-bouncing 8th bass, bright square pad
+      if (s === 0 || s === 8 || (s === 10 && bar % 2)) kick(t, .42);
+      if (s === 4 || s === 12) clap(t, .3, 1700);
+      if (s % 2 === 0) hat(t, s % 4 === 2 ? .07 : .04);
+      if (s % 2 === 0) bandVoice(t, c.r + (s % 4 === 2 ? 12 : 0), 'sawtooth', .075, d * 1.4, 650);
+      if (s === 0) chordUp(c).forEach(x => padNote(t, x, barLen * .92, { type: 'square', det: [-7, 7], lp: 1500, vol: .014, att: .03, rel: .35 }));
+      if (s === 6 || s === 14) chordUp(c).forEach(x => padNote(t, x + 12, d * .6, { type: 'sawtooth', det: [0], lp: 3200, vol: .012, att: .004, rel: .12 })); // stabs
+    } else if (style === 'chip') {    // a hint of NES: triangle bass, noise kit, a thin pulse pad (quantised by the chip bus)
+      if (s % 2 === 0) chipVoice(t, c.r + 12 + (s % 8 === 4 ? 12 : 0), 'triangle', .32, d * 1.7);
+      if (s === 0 || s === 8) chipNoise(t, .06, .4, 180);
+      if (s === 4 || s === 12) chipNoise(t, .12, .32, 1600);
+      if (s % 4 === 2) chipNoise(t, .02, .16, 6500);
+      if (s === 0) c.t.slice(0, 3).forEach(x => padNote(t, x + 12, barLen * .9, { type: 'square', det: [0], lp: 4000, vol: .009, att: .01, rel: .1 }));
+      if (s === 14 && bar % 2) chipVoice(t, c.t[0] + 24, 'square', .1, d * 2); // a little pickup note
+    } else if (style === 'trance') {  // trance: four on the floor, off-beat bass, open hats, a pumping supersaw pad
+      if (s % 4 === 0) { kick(t, .48, 42); duck(t, .3, .12); }
+      if (s % 4 === 2) { bandVoice(t, c.r, 'sawtooth', .1, d * 1.3, 480); hat(t, .08, .09, 8000); }
+      else if (s % 2 === 1) hat(t, .025);
+      if (s === 4 || s === 12) clap(t, .22, 2000);
+      if (s === 0) chordUp(c).forEach(x => padNote(t, x, barLen * .95, { type: 'sawtooth', det: [-22, -9, 9, 22], lp: 1600, sweep: 2.2, vol: .011, att: .08, rel: .5 }));
+    } else if (style === 'glitch') {  // glitch: broken kick pattern, stuttered snares, digital clicks, short sub hits
+      const odd = bar % 2;
+      if (s === 0 || s === 3 || s === 10 || (odd && s === 7)) { kick(t, .4, 48); bandVoice(t, c.r, 'sine', .14, d * 1.1, 400, .003); }
+      if (s === 8) clap(t, .3, 2400);
+      if (odd && s >= 12) for (let k = 0; k < (s >= 14 ? 3 : 2); k++) noiseAt(t + k * d / (s >= 14 ? 3 : 2), .03, 'bandpass', 1500 + (s - 12) * 900 + k * 400, .22); // stutter roll
+      if (((n * 7919 + bar * 13) % 11) < 4) fmVoice(t, 2600 + ((n * 37) % 5) * 700, 2.71, 12, .012, .045, .01, 'square', 4000); // clicks
+      if (s === 6 || s === 14) { const z = fmVoice(t, 900, 1.5, 6, .06, .03, .05, 'square'); z.frequency.exponentialRampToValueAtTime(3800, t + .05); } // zips
+      if (s % 2 === 1 && !odd) hat(t, .022, .015, 9000);
+      if (s === 0) c.t.forEach(x => padNote(t, x + 12, barLen * .9, { type: 'triangle', det: [-5, 5], lp: 3000, vol: .016, att: .3, rel: .8 }));
+    } else {                          // modern: deep soft kick, shuffled hats, snaps, reese bass, a slowly opening wide pad
+      if (s % 4 === 0) { kick(t, .4, 40); duck(t, .45, .16); }
+      const sw = s % 2 ? d * .14 : 0, vel = [.012, .006, .03, .008][s % 4];
+      hat(t + sw, vel * 1.6, .025, 9000);
+      if (s === 4 || s === 12) clap(t, .2, 2600);
+      if (s === 0 || s === 8) padNote(t, c.r, d * 7.2, { type: 'sawtooth', det: [-14, 14], lp: 360, vol: .055, att: .02, rel: .12, q: 2 });
+      if (s === 0) [...c.t, c.t[0] + 12].forEach(x => padNote(t, x, barLen * .98, { type: 'sawtooth', det: [-10, 10], lp: 700, sweep: 3, vol: .01, att: .5, rel: 1.2 }));
+      if (s === 11 || s === 14) bandVoice(t, c.t[(s + bar) % c.t.length] + 24, 'triangle', .035, .25, 4000); // sparse plucks
+    }
+  }
+  const BAND = ['pop', 'chip', 'trance', 'glitch', 'modern'];
+
   // The opening band: everyone plays their own part. The arp is the Sine's part.
   function voiceAt(t, semi, type, vol, dur, lpF) {
     const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
@@ -816,8 +888,9 @@ body.desk .mbtns button:hover{opacity:1}
     env.gain.cancelScheduledValues(t);
     // boss fights with their own track (Квадрат, Суперпила, Wavetable): the level arp steps aside so the fight IS the music
     const bossTrack = boss && !boss.dead && boss.t > 1 && ['pwm', 'chords', 'harm', 'crush'].includes(boss.B.kind);
+    const talk = state === 'story' && !(storyQ && storyQ.scene);
     if (bossTrack) env.gain.setTargetAtTime(0, t, .05);
-    else blip(t, .3, d);
+    else blip(t, talk ? .1 : .3, d);
     if (curWave === 'mdr' && !bossTrack) {
       const s2 = tn[L.pat[(n + 3) % 8] % tn.length], t2 = t + d / 2;
       noteLog.push({ t: t2, t0: t, semi: s2, n });
@@ -844,7 +917,10 @@ body.desk .mbtns button:hover{opacity:1}
     if (dub) dubstep(n, t, c);
     else if (dubOn) { dubG.gain.cancelScheduledValues(t); dubG.gain.setTargetAtTime(0, t, .05); dubOn = false; dubRate = 0; }
     if (dance) drums(n, t);
-    if (!dub && !wave80 && !band && !chip && (dance ? n % 4 === 2 : (n % 16 === 0 || (bossMusic && n % 4 === 0)))) { // dance: off-beat trance bass
+    const lvlBand = !boss && !band && state !== 'over';
+    if (lvlBand) { levelBand(n, t, c, BAND[victoryRun ? 4 : level], talk); bandOn = true; }
+    else if (bandOn) { padBus.gain.cancelScheduledValues(t); padBus.gain.setTargetAtTime(1, t, .05); bandOn = false; }
+    if (!lvlBand && !dub && !wave80 && !band && !chip && (dance ? n % 4 === 2 : (n % 16 === 0 || (bossMusic && n % 4 === 0)))) { // dance: off-beat trance bass
       bass.frequency.setValueAtTime(hz(c.r), t);
       bassEnv.gain.cancelScheduledValues(t);
       bassEnv.gain.setTargetAtTime(dance ? .2 : bossMusic ? .16 : .2, t, .006);
@@ -898,6 +974,7 @@ body.desk .mbtns button:hover{opacity:1}
   function startMusic() {
     if (!ac) return;
     playing = true; stepN = 0; noteLog = []; nextT = ac.currentTime + .05; musicMode = curMode; barBase = 0;
+    padBus.gain.cancelScheduledValues(ac.currentTime); padBus.gain.setTargetAtTime(1, ac.currentTime, .02);
     osc.frequency.cancelScheduledValues(ac.currentTime); fmOsc.frequency.cancelScheduledValues(ac.currentTime);
   }
   function stopMusic() {
@@ -908,6 +985,7 @@ body.desk .mbtns button:hover{opacity:1}
     bassEnv.gain.cancelScheduledValues(t); bassEnv.gain.setTargetAtTime(0, t, .05);
     dubG.gain.cancelScheduledValues(t); dubG.gain.setTargetAtTime(0, t, .03); dubOn = false; dubRate = 0;
     pbG.gain.cancelScheduledValues(t); pbG.gain.setTargetAtTime(0, t, .03); padG.gain.cancelScheduledValues(t); padG.gain.setTargetAtTime(0, t, .1); swOn = false;
+    padBus.gain.cancelScheduledValues(t); padBus.gain.setTargetAtTime(0, t, .08); bandOn = false;
   }
   function noise(len, fType, f0, f1, vol) {
     if (!ac) return;
@@ -1058,7 +1136,8 @@ body.desk .mbtns button:hover{opacity:1}
   const bossIntroSeen = new Set();
   const seenCat = { ground: false, ceil: false, tall: false }, seenKind = new Set();
   let best = parseInt(store.get('osc-adv-best', '0'), 10) || 0;
-  let unlocked = clamp(parseInt(store.get('osc-adv-unlocked', '0'), 10) || 0, 0, LEVELS.length - 1);
+  const staging = /-git-|localhost|127\.0\.0\.1/.test(location.hostname);
+  let unlocked = staging ? LEVELS.length - 1 : clamp(parseInt(store.get('osc-adv-unlocked', '0'), 10) || 0, 0, LEVELS.length - 1);
   const foldHeld = () => foldKey || foldPtr;
   let god = store.get('osc-adv-god', '0') === '1';
   const levelLen = () => level === LEVELS.length - 1 && victoryRun ? Infinity : LEVELS[level].len;
@@ -2165,7 +2244,9 @@ body.desk .mbtns button:hover{opacity:1}
   const shakeY = t => (Math.floor(t * 17) % 3 - 1) * 1.2;
   function keyClick(who) {
     const c = CAST[who]; if (!c || !ac) return;
-    tones([(c.pitch ?? 12) + (Math.random() < .5 ? 0 : 2)], c.digital ? 'square' : c.nar ? 'sine' : 'triangle', 0, c.digital ? .035 : .05, .035);
+    // a key: a short bright tick plus the speaker's own pitch, an octave above the arp so the music can't hide it
+    noiseAt(ac.currentTime, .012, 'highpass', 4200, .16);
+    tones([(c.pitch ?? 12) + 12 + (Math.random() < .5 ? 0 : 2)], c.digital ? 'square' : c.nar ? 'sine' : 'triangle', 0, c.digital ? .05 : .07, .04);
   }
   function drawSprite(who, x, cy, w, amp, tnow, opt = {}) {
     amp *= opt.amp ?? 1;
@@ -2323,12 +2404,60 @@ body.desk .mbtns button:hover{opacity:1}
     ctx.fillStyle = col; ctx.fillRect(cw / 2 - bw / 2, by, bw * have / need, 4);
     ctx.restore();
   }
+  // ---------- background: a far ridge of summed sines and a grove of function trees, in slow parallax ----------
+  const hash = k => { const v = Math.sin(k * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+  // each tree: a trunk and a crown that is a plot — rose r = cos kθ, a bell curve, stacked |x| tiers, a sinc willow
+  function drawTree(x, base, sz, kind, seed) {
+    const top = base - sz, q = [];
+    ctx.moveTo(x, base); ctx.lineTo(x, top + sz * .25);                       // trunk
+    if (kind === 0) {                                                          // rose crown, k = 2..4 petals
+      const k = 2 + Math.floor(seed * 3), R = sz * .32, cy = top + sz * .3;
+      for (let i = 0; i <= 120; i++) { const th = i / 120 * Math.PI * 2, r = R * Math.cos(k * th); q.push(x + r * Math.cos(th), cy + r * Math.sin(th)); }
+    } else if (kind === 1) {                                                   // bell: y = e^(−x²)
+      const w = sz * .38;
+      for (let i = 0; i <= 40; i++) { const u = i / 40 * 2 - 1; q.push(x + u * w, top + sz * .55 - sz * .55 * Math.exp(-u * u * 4)); }
+    } else if (kind === 2) {                                                   // fir: three tiers of 1 − |x|
+      for (let tier = 0; tier < 3; tier++) {
+        const w = sz * (.34 - tier * .08), yb = top + sz * (.75 - tier * .22), h = sz * .3;
+        ctx.moveTo(x - w, yb); ctx.lineTo(x, yb - h); ctx.lineTo(x + w, yb);
+      }
+    } else {                                                                   // willow: sinc ripples hanging from the top
+      for (const side of [-1, 1]) {
+        ctx.moveTo(x, top + sz * .25);
+        for (let i = 1; i <= 24; i++) { const u = i / 24, xx = x + side * u * sz * .4, v = u * 9; ctx.lineTo(xx, top + sz * .25 + sz * .45 * u * u + 6 * Math.sin(v) / (v || 1)); }
+      }
+    }
+    for (let i = 0; i < q.length; i += 2) i ? ctx.lineTo(q[i], q[i + 1]) : ctx.moveTo(q[i], q[i + 1]);
+  }
+  function drawScenery() {
+    ctx.save(); ctx.lineWidth = lw(1); ctx.lineJoin = 'round';
+    // far ridge
+    const far = dist * .08;
+    ctx.strokeStyle = 'rgba(222,218,209,.07)'; ctx.beginPath();
+    for (let x = -4; x <= WORLD_W + 4; x += 6) {
+      const u = x + far, yy = GROUND - 26 - 13 * Math.sin(u * .017) - 8 * Math.sin(u * .041 + 2) - 4 * Math.sin(u * .09 + 1);
+      x < 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+    // two grove layers: far small trees, nearer bigger ones
+    for (const [p, sp, a, s0] of [[.18, 95, .07, 34], [.36, 150, .11, 58]]) {
+      const off = dist * p, k0 = Math.floor((off - 60) / sp), k1 = Math.ceil((off + WORLD_W + 60) / sp);
+      ctx.strokeStyle = `rgba(222,218,209,${a})`; ctx.beginPath();
+      for (let k = k0; k <= k1; k++) {
+        if (hash(k + p * 100) < .3) continue;                                 // gaps in the grove
+        const x = k * sp + hash(k * 3.1 + p) * sp * .6 - off, sz = s0 * (.7 + hash(k * 7.3 + p) * .6);
+        drawTree(x, GROUND, sz, Math.floor(hash(k * 1.7 + p * 9) * 4), hash(k * 5.9));
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   function render(dt) {
     if (!cw) return;
     const W = cv.width, H = cv.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = `rgba(0,0,0,${reduced ? 1 : 1 - Math.exp(-dt * 19)})`;
+    ctx.fillStyle = `rgba(0,0,0,${reduced ? 1 : 1 - Math.exp(-dt * 70)})`; // short persistence: a hint of trail, no ripple
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     shX = shake > 0 ? R(-2, 2) : 0; shY = shake > 0 ? R(-2, 2) : 0;
@@ -2336,6 +2465,7 @@ body.desk .mbtns button:hover{opacity:1}
     const TOP = -offY - 4;
     const tnow = performance.now() / 1000;
 
+    if (!boss && state !== 'title') drawScenery();
     // ground
     ctx.save(); ctx.strokeStyle = COL.dim; ctx.lineWidth = lw(1);
     ctx.beginPath(); ctx.moveTo(-10, GROUND); ctx.lineTo(WORLD_W + 10, GROUND);
@@ -2605,6 +2735,7 @@ body.desk .mbtns button:hover{opacity:1}
       if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
       else bossCallout('ЩИТ', 'жди аккорд', COL.red);
     }
+    if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1 · не бери 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
       bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.chain > 1 ? `серия ×${boss.chain}` : 'прыгай по зелёным', COL.red, (boss.base - .5) / (SQ_WIN - .5));
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
@@ -2741,7 +2872,7 @@ body.desk .mbtns button:hover{opacity:1}
   }
   $('testGo').addEventListener('click', e => { e.currentTarget.blur(); testJump($('testSel').value); });
   $('testSel').addEventListener('keydown', e => e.stopPropagation());
-  const syncTestPick = () => { const t = location.hash === '#test'; document.querySelector('.testpick').hidden = !t; document.body.classList.toggle('testing', t); };
+  const syncTestPick = () => { const t = location.hash === '#test' || staging; document.querySelector('.testpick').hidden = !t; document.body.classList.toggle('testing', t); };
   syncTestPick(); addEventListener('hashchange', syncTestPick);
   if (desk) { document.body.classList.add('desk'); $('mFs').hidden = !document.documentElement.requestFullscreen; enterPlayMode(); }
   showTitle();
