@@ -1117,7 +1117,6 @@ body.desk .mbtns button:hover{opacity:1}
       case 'spike': Object.assign(o, { w: R(26, 34), h: R(36, 48), label: 'δ(x)', samples: 40, prof: u => 1 - Math.abs(2 * u - 1) }); break;
       case 'gauss': Object.assign(o, { w: R(70, 100), h: R(46, 70), label: 'y = e^(−x²)', prof: u => Math.exp(-Math.pow((u - .5) * 5, 2)) }); break;
       // effect gates: not lethal, they change the signal for a while. Jump over to avoid.
-      case 'gnote': Object.assign(o, { w: 18, h: R(22, 30), label: 'gate', hint: '↑ нота-гейт: перепрыгни', prof: u => edge(u, .12) }); break;
       case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ выпрямитель: перепрыгни', prof: () => 1 }); break;
       case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ кольцевой: перепрыгни', prof: () => 1 }); break;
       case 'pi': Object.assign(o, { w: R(24, 34), h: R(110, 128), tall: true, label: 'y = Π(x)', prof: u => edge(u, .1) }); break;
@@ -1509,29 +1508,30 @@ body.desk .mbtns button:hover{opacity:1}
   //     Take every lit step and the sequence is yours. A jump off the beat gives one back.
   // Three rounds, each faster: 8 steps on quarters, 8 on eighths, then 16 on eighths with the lit steps on the off-beats.
   // A jump counts only near the start of a step. On a lit step: yours. On a dark step: a miss — you lose the last
-  // step you took and the pattern shifts. A jump between steps is free, and so is one made to clear a gate note.
-  const SEQ_ROUNDS = [{ rate: 1, N: 8, act: 5 }, { rate: 2, N: 8, act: 5 }, { rate: 2, N: 16, act: 6, sync: true }];
+  // step you took and the pattern shifts. A jump between steps is free. No obstacles: the steps are the whole fight.
+  const SEQ_ROUNDS = [{ rate: 1, N: 8, act: 5, win: .1 }, { rate: 2, N: 8, act: 6, win: .085 }, { rate: 2, N: 16, act: 7, sync: true, drift: true, win: .07 }];
   function seqRound(b, r) {
     const R = SEQ_ROUNDS[r], all = [...Array(R.N).keys()].sort(() => Math.random() - .5);
     const pool = R.sync ? all.filter(i => i % 2).concat(all.filter(i => i % 2 === 0)) : all; // off-beats first
-    Object.assign(b, { round: r, rate: R.rate, N: R.N, captured: [], flash: Array(R.N).fill(0), active: pool.slice(0, R.act).sort((x, y) => x - y), noteT: 2.5 });
+    Object.assign(b, { round: r, rate: R.rate, N: R.N, captured: [], flash: Array(R.N).fill(0), active: pool.slice(0, R.act).sort((x, y) => x - y), driftBar: undefined });
   }
   function updateSeq(dt) {
     const b = boss;
     for (let i = 0; i < b.N; i++) b.flash[i] = Math.max(0, b.flash[i] - dt * 3);
-    if (b.round >= 1) { // gate notes slide in along the ground: jump them
-      b.noteT -= dt;
-      if (b.noteT <= 0) {
-        const o = makeOb('gnote', dist + WORLD_W + 30); o.enemy = true; o.vx = 60; tagHint(o); obstacles.push(o);
-        b.noteT = b.round === 1 ? R(2.4, 3.6) : R(1.7, 2.7);
+    if (SEQ_ROUNDS[b.round].drift) { // the last round won't sit still: every two bars the whole pattern slides one step
+      const bar2 = Math.floor(beatPos / 8);
+      if (b.driftBar === undefined) b.driftBar = bar2;
+      if (bar2 !== b.driftBar) {
+        b.driftBar = bar2; const rot = k => (k + 1) % b.N;
+        b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
+        b.flash = b.flash.map(() => .5); toast = { t: 0, text: 'узор сдвинулся ≫', color: COL.red };
       }
     }
   }
-  const seqDodging = () => obstacles.some(o => o.enemy && !o.broken && o.x - dist > HERO_X - 30 && o.x - dist < HERO_X + HERO_W + 110);
   function seqJudge() {
     const b = boss; if (!b || b.dead || b.t < 1.4) return;
     const pos = beatPos * b.rate, near = Math.round(pos), stepSec = 60 / bpmNow() / b.rate;
-    if (Math.abs(pos - near) * stepSec > Math.min(.1, stepSec * .32)) return; // between steps: a free jump
+    if (Math.abs(pos - near) * stepSec > Math.min(SEQ_ROUNDS[b.round].win, stepSec * .32)) return; // between steps: a free jump
     const i = ((near % b.N) + b.N) % b.N;
     if (b.active.includes(i) && !b.captured.includes(i)) {
       b.captured.push(i); b.flash[i] = 1; b.hitT = .15;
@@ -1541,12 +1541,12 @@ body.desk .mbtns button:hover{opacity:1}
         if (b.round < SEQ_ROUNDS.length - 1) {
           seqRound(b, b.round + 1); sfxLevel(); buzz([20, 30, 20]);
           showPop(`РАУНД ${b.round + 1}`, COL.red, 2);
-          toast = { t: 0, text: b.round === 1 ? 'вдвое быстрее' : '16 шагов · синкопы', color: COL.red };
+          toast = { t: 0, text: b.round === 1 ? 'вдвое быстрее · 6 шагов' : '16 шагов · узор плывёт', color: COL.red };
         } else hitBoss(1, 'seq');
       }
     } else if (b.active.includes(i)) {
       // on a step you already own: nothing happens
-    } else if (!seqDodging()) {
+    } else {
       const lost = b.captured.pop();
       const sh = pick([1, 2, 3, -1, -2, -3]), rot = k => ((k + sh) % b.N + b.N) % b.N;
       b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
@@ -2181,7 +2181,7 @@ body.desk .mbtns button:hover{opacity:1}
       return;
     }
     const e = Math.min(1, boss.t / 1.3);
-    boss.x = lerp(WORLD_W + 90, 392, 1 - Math.pow(1 - e, 3));
+    boss.x = lerp(WORLD_W + 90, boss.B.kind === 'seq' ? WORLD_W / 2 : 392, 1 - Math.pow(1 - e, 3)); // the sequencer takes centre stage
     if (boss.t < 1.4) return;
     if (!boss.B.noAtk) boss.atkT -= dt;
     if (boss.atkT <= 0) { bossAttack(); boss.atkT = boss.B.atkI ? R(boss.B.atkI[0], boss.B.atkI[1]) : lerp(1.05, 1.7, boss.hp / boss.max) * R(.9, 1.15); }
@@ -2275,15 +2275,15 @@ body.desk .mbtns button:hover{opacity:1}
       }
       trace(q, col, 2.2, alpha);
     } else if (b.key === 'seq') {
-      const N = b.N || 8, cwid = N > 8 ? 8 : 15, gap = N > 8 ? 2 : 4, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
+      const N = b.N || 8, cwid = N > 8 ? 17 : 30, gap = N > 8 ? 4 : 7, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
       const cur = ((Math.floor(beatPos * (b.rate || 1) + .5) % N) + N) % N; // the step whose window is open now
       for (let i = 0; i < N; i++) {
         const xx = sx + i * (cwid + gap), on = b.active.includes(i), mine = b.captured.includes(i);
-        const q = [xx, by - 10, xx + cwid, by - 10, xx + cwid, by + 10, xx, by + 10, xx, by - 10];
+        const q = [xx, by - 15, xx + cwid, by - 15, xx + cwid, by + 15, xx, by + 15, xx, by - 15];
         const c = b.dead || mine ? COL.ch1 : on ? COL.red : 'rgba(255,77,61,.35)';
         if (on || mine || b.dead) fillPoly(q, c, (mine ? .45 : .25) + b.flash[i] * .4);
         trace(q, c, i === cur && !b.dead ? 2.2 : 1, i === cur ? 1 : .7);
-        if (i === cur && !b.dead) trace([xx - 2, by + 16, xx + cwid + 2, by + 16], '#ffffff', 2);
+        if (i === cur && !b.dead) trace([xx - 2, by + 22, xx + cwid + 2, by + 22], '#ffffff', 2.4);
       }
     } else if (b.key === 'wt') {
       const scan = b.t * .7;
@@ -2309,7 +2309,7 @@ body.desk .mbtns button:hover{opacity:1}
     }
     if (!b.dead) {
       const name = CAST[b.B.who].name.toUpperCase();
-      text(name, b.x, by - amp - 30, COL.red, 'center', fontPx(), 600);
+      if (b.key !== 'seq') text(name, b.x, by - amp - 30, COL.red, 'center', fontPx(), 600); // the centred sequencer would collide with the callout
       const pw = 9, gap = 3, tw = b.max * (pw + gap) - gap;
       ctx.save();
       if (!['pwm', 'crush', 'seq', 'harm'].includes(b.B.kind)) for (let i = 0; i < b.max; i++) {
@@ -2627,17 +2627,16 @@ body.desk .mbtns button:hover{opacity:1}
   // Bottom progress bar: partials towards the boss gate on a level, progress towards the win in a boss fight.
   // It eases to its value and flashes when it grows.
   let barShown = 0, barLast = 0, barFlash = 0, barRed = 0, redT = 0;
+  // fewer than 4 partials = one more hit could end the run: the bar blinks
+  const lowLives = () => !god && levelPartials < 4 && Math.floor(performance.now() / 170) % 2 === 1;
   function progressNow() {
     if (boss && !boss.dead) {
       const b = boss, k = b.B.kind;
       const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? (b.round + b.captured.length / b.active.length) / SEQ_ROUNDS.length
         : k === 'harm' ? (8 - b.rem.length) / 8 : 1 - b.hp / b.max;
-      return [clamp(f, 0, 1), COL.ch1];
+      return [clamp(f, 0, 1), lowLives() ? COL.red : COL.ch1]; // low on partials: blinks red/yellow
     }
-    if (gated() && !bossPending) {
-      const rem = NEED[level] - levelPartials, blink = rem > 0 && rem < 4 && Math.floor(performance.now() / 170) % 2;
-      return [clamp(levelPartials / NEED[level], 0, 1), blink ? COL.ch1 : COL.ch4];
-    }
+    if (gated() && !bossPending) return [clamp(levelPartials / NEED[level], 0, 1), lowLives() ? COL.ch1 : COL.ch4]; // low on partials: blinks yellow
     return null;
   }
   function drawProgressBar(dt) {
