@@ -1024,6 +1024,24 @@ body.desk .mbtns button:hover{opacity:1}
     dubG.gain.cancelScheduledValues(t); dubG.gain.setTargetAtTime(0, t, .05); dubOn = false; dubRate = 0;
     pbG.gain.cancelScheduledValues(t); pbG.gain.setTargetAtTime(0, t, .05); padG.gain.cancelScheduledValues(t); padG.gain.setTargetAtTime(0, t, .1); swOn = false;
   }
+  // Partials climb a ladder: the mode's scale over two octaves, spread over the partials this level needs,
+  // so each pickup sounds one step higher. Losing them runs the arp back down the same steps.
+  const KEY_SEMI = { A: 0, B: 2, C: 3, D: 5, E: 7, F: 8, G: 10 };
+  function partialLadder() {
+    const M = MODES[curMode], r = KEY_SEMI[M.scope[0]] ?? 0, lad = [];
+    for (let o = 0; o < 2; o++) for (const st of M.steps) lad.push(r + 12 + o * 12 + st);
+    lad.push(r + 36); return lad;
+  }
+  const gated = () => !boss && !victoryRun && LEVELS[level].boss;
+  function ladderNote(k) {
+    const lad = partialLadder(), need = gated() ? NEED[level] : lad.length - 1;
+    return lad[clamp(Math.round(k / need * (lad.length - 1)), 0, lad.length - 1)];
+  }
+  function sfxPartial(k) { const s = ladderNote(k); tones([s, s + 12], 'sine', .045, .11, .32); }
+  function sfxPartialLoss(from, to) {
+    const list = []; for (let k = from; k >= to; k--) list.push(ladderNote(k));
+    tones(list, 'triangle', .055, .1, .22);
+  }
   const sfxPing = () => { const b = currentSemi() + octave + 24; tones([b, b + 7], 'sine', .06, .12, .3); };
   const sfxZap = () => noise(.14, 'highpass', 1800, 5000, .3);
   const sfxPower = type => { const b = currentSemi() + 12; tones([b, b + 4, b + 7, b + 12, b + 16], WAVES[type].osc, .045, .08, .22); };
@@ -1126,7 +1144,11 @@ body.desk .mbtns button:hover{opacity:1}
   let foldKey = false, foldPtr = false, foldAmt = 0, phase = 0, visOct = 0, deathT = 0;
   let pts = 0, partials = 0, obstacles = [], pickups = [], pills = [], beams = [], nextX = 0, killer = '';
   let levelStart = 0, levelSpawn = 0, marker = null, levelStartPts = 0, levelStartPartials = 0;
-  let power = null, banner = null, toast = null, shake = 0, pillCount = 0;
+  let power = null, banner = null, toast = null, pop = null, shake = 0, pillCount = 0;
+  const showPop = (text, color = COL.ch4, prio = 1) => { // a loss stays up a moment even if you grab a partial right after
+    if (pop && pop.prio > prio && pop.t < .7) return;
+    pop = { t: 0, text, color, prio };
+  };
   let platforms = [], standing = null, fmIndex = 0, idxTokens = [], invulnT = 0;
   let fx = { rect: 0, ring: 0, ringPh: 0 };
   let harmTokens = [], shots = [];
@@ -1322,7 +1344,7 @@ body.desk .mbtns button:hover{opacity:1}
     if (back) { b.rem.push(back); b.rem.sort((x, y) => y - x); b.hp = b.rem.length; setDubLayers(b.hp); }
     b.hitT = .25;
     if (god) { invulnT = .8; tones([0, 6], 'sawtooth', .04, .06, .2); buzz(60); }
-    const pre = !god && toast && toast.color === COL.red && toast.t === 0 ? `−${HIT_COST} ◎ · ` : '';
+    const pre = '';
     toast = { t: 0, text: pre + (back ? `h${back} вернулась` : 'мимо!'), color: COL.red };
   }
   function allyHarm() {
@@ -1353,8 +1375,8 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 0; i < 2; i++) idxTokens.push({ x: dist + boss.x - 10, h: -(boss.B.y ?? -128), vx: R(-150, -50), vh: R(40, 170), th: pick([12, 12, 34, 60, 84]), t: 0 });
   }
   function applyFx(kind) {
-    if (kind === 'rect') { fx.rect = 5; setRect(true); toast = { t: 0, text: 'RECTIFY · полволны: прыжок слабее', color: COL.fx }; }
-    else { fx.ring = 6; fx.ringPh = Math.PI / 2; setRing(true); toast = { t: 0, text: 'RING MOD · не задень второй сайдбенд', color: COL.fx }; }
+    if (kind === 'rect') { fx.rect = 5; setRect(true); toast = { t: 0, text: 'RECTIFY · прыжок слабее', color: COL.fx }; }
+    else { fx.ring = 6; fx.ringPh = Math.PI / 2; setRing(true); toast = { t: 0, text: 'RING MOD · не задень двойника', color: COL.fx }; }
     noise(.18, 'bandpass', 2500, 600, .2);
   }
   // the lower sideband: wanders ahead of the hero and mirrors the hero's height
@@ -1369,8 +1391,9 @@ body.desk .mbtns button:hover{opacity:1}
     const lost = Math.min(HIT_COST, levelPartials);
     levelPartials -= lost; invulnT = 1.6;
     for (let i = 0; i < lost; i++) pickups.push({ x: dist + HERO_X + 70 + i * 30 + R(-6, 6), h: R(18, 78), got: false, t: 0, seed: R(0, 6), lost: true, age: 0 });
-    tones([12, 7, 3, 0], 'square', .05, .07, .14); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
-    toast = { t: 0, text: levelPartials ? `−${lost} ◎ · осталось ${levelPartials}` : `−${lost} ◎ · ещё удар — конец`, color: COL.red };
+    sfxPartialLoss(levelPartials + lost, levelPartials); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
+    showPop(`−${lost} ◎`, COL.red, 2);
+    toast = { t: 0, text: levelPartials ? `осталось ${levelPartials}` : 'ещё удар — конец', color: COL.red };
     if (!reduced) shake = .25;
   }
   function loseIndex() {
@@ -1959,6 +1982,7 @@ body.desk .mbtns button:hover{opacity:1}
     syncBeat(dt);
     if (banner) { banner.t += dt; if (banner.t > 2.6) banner = null; }
     if (toast) { toast.t += dt; if (toast.t > 1.8) toast = null; }
+    if (pop) { pop.t += dt; if (pop.t > 1.1) pop = null; }
     shake = Math.max(0, shake - dt);
     for (const ob of obstacles) if (ob.broken) ob.bt += dt;
     for (const b of beams) b.t += dt;
@@ -2038,8 +2062,13 @@ body.desk .mbtns button:hover{opacity:1}
         if (p.lost) p.age += dt;
         if (p.got) { p.t += dt; continue; }
         if (hitBox(p.x - dist, p.h, 7)) {
-          p.got = true; partials++; pts += 10; sfxPing();
-          levelPartials++;
+          p.got = true; partials++; pts += 10;
+          levelPartials++; sfxPartial(levelPartials);
+          if (gated()) {
+            const rem = NEED[level] - levelPartials;
+            if (rem > 0) showPop(rem <= 3 ? `ЕЩЁ ${rem}` : `${levelPartials}/${NEED[level]}`, COL.ch4);
+            else if (rem === 0) showPop('БОСС ОТКРЫТ', COL.ch1);
+          } else showPop(`◎ ${levelPartials}`, COL.ch4);
           if (!boss && !victoryRun) {
             const L = LEVELS[level];
             if (L.boss && levelPartials === NEED[level] && !gateOpenSaid) { gateOpenSaid = true; tones([24, 28, 31, 36], 'sine', .05, .1, .3); buzz([20, 30, 20]); }
@@ -2132,7 +2161,7 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]);
     ctx.closePath(); ctx.fill(); ctx.restore();
   }
-  const fontPx = () => clamp(cw / 62, 10, 13);
+  const fontPx = () => clamp(cw / 52, 11, 17);
   function textScreen(s, sx, sy, color, align = 'center', px = fontPx(), weight = 500, family = '"IBM Plex Mono", ui-monospace, Menlo, monospace', alpha = 1) {
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = alpha;
     ctx.font = `${weight} ${px}px ${family}`;
@@ -2147,6 +2176,13 @@ body.desk .mbtns button:hover{opacity:1}
     ctx.globalCompositeOperation = 'destination-out'; ctx.globalAlpha = Math.min(1, alpha * 1.5); ctx.fillRect(x0, sy - px * .75, w, px * 1.5);
     ctx.restore();
     textScreen(s, sx, sy, color, align, px, weight, family, alpha);
+  }
+  // big display text (events): Unbounded, shrunk to fit the screen width, with the ghost wiped underneath
+  function bigText(s, x, y, color, px, alpha = 1) {
+    const fam = '"Unbounded", "Arial Black", sans-serif';
+    ctx.save(); ctx.font = `700 ${px}px ${fam}`; const w = ctx.measureText(s).width; ctx.restore();
+    if (w > cw * .92) px *= cw * .92 / w;
+    crispText(s, x, y, color, 'center', px, 700, fam, alpha);
   }
   let shX = 0, shY = 0;
   const text = (s, wx, wy, color, align = 'center', px = fontPx(), weight = 500) =>
@@ -2391,7 +2427,7 @@ body.desk .mbtns button:hover{opacity:1}
   // partials needed for the boss: Lissajous icon, big count, a bar
   function drawPartialGate(yy, tnow) {
     const need = NEED[level], have = Math.min(levelPartials, need), done = have >= need, fp = fontPx();
-    const big = fp + 5, col = done ? COL.ch4 : 'rgba(120,236,126,.85)', label = done ? `${have}/${need} · босс открыт` : `${have}/${need}`;
+    const big = clamp(cw / 24, 18, 34), col = done ? COL.ch4 : 'rgba(120,236,126,.85)', label = done ? `${have}/${need} · БОСС` : `${have}/${need}`;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = `700 ${big}px "IBM Plex Mono", ui-monospace, monospace`;
     const tw = ctx.measureText(label).width, ix = cw / 2 - tw / 2 - 16, r = big * .42;
@@ -2399,7 +2435,7 @@ body.desk .mbtns button:hover{opacity:1}
     for (let i = 0; i <= 48; i++) { const t = i / 48 * Math.PI * 2, x = ix + r * Math.sin(3 * t + tnow * 2.2), y = yy + r * Math.sin(2 * t); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.stroke(); ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, cw / 2 - tw / 2 + 4, yy);
-    const bw = Math.min(160, cw * .36), by = yy + big * .75;
+    const bw = Math.min(240, cw * .5), by = yy + big * .75;
     ctx.fillStyle = 'rgba(120,236,126,.15)'; ctx.fillRect(cw / 2 - bw / 2, by, bw, 4);
     ctx.fillStyle = col; ctx.fillRect(cw / 2 - bw / 2, by, bw * have / need, 4);
     ctx.restore();
@@ -2450,6 +2486,35 @@ body.desk .mbtns button:hover{opacity:1}
       }
       ctx.stroke();
     }
+    ctx.restore();
+  }
+  // Bottom progress bar: partials towards the boss gate on a level, progress towards the win in a boss fight.
+  // It eases to its value and flashes when it grows.
+  let barShown = 0, barLast = 0, barFlash = 0;
+  function progressNow() {
+    if (boss && !boss.dead) {
+      const b = boss, k = b.B.kind;
+      const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? b.captured.length / b.active.length
+        : k === 'harm' ? (8 - b.rem.length) / 8 : 1 - b.hp / b.max;
+      return [clamp(f, 0, 1), COL.ch1];
+    }
+    if (gated() && !bossPending) return [clamp(levelPartials / NEED[level], 0, 1), COL.ch4];
+    return null;
+  }
+  function drawProgressBar(dt) {
+    const pr = state === 'play' && !storyQ ? progressNow() : null;
+    if (!pr) { barShown = barLast = 0; return; }
+    const [f, col] = pr;
+    if (f > barLast + .001) barFlash = 1;
+    barLast = f; barShown += (f - barShown) * (1 - Math.exp(-dt * 9)); barFlash = Math.max(0, barFlash - dt * 2.5);
+    const h = clamp(ch * .012, 5, 10) * (1 + barFlash * .6), y0 = ch - h;
+    ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillRect(0, y0 - 4, cw, h + 4);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(222,218,209,.08)'; ctx.fillRect(0, y0, cw, h);
+    ctx.shadowColor = col; ctx.shadowBlur = 10 + barFlash * 14; ctx.fillStyle = col;
+    ctx.fillRect(0, y0, cw * barShown, h);
+    if (barFlash > 0) { ctx.globalAlpha = barFlash; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.max(0, cw * barShown - 18), y0, 18, h); }
     ctx.restore();
   }
   function render(dt) {
@@ -2727,7 +2792,7 @@ body.desk .mbtns button:hover{opacity:1}
     textScreen(`CH1 ${wname} ${state === 'play' ? noteName() : 'A3'}`, pad, pad + fp / 2, power ? powerColor(power.type, tnow) : COL.ch1, 'left');
     const oc = state === 'play' ? octave : 0;
     textScreen(oc ? `${oc > 0 ? '+' : '−'}${Math.abs(oc)} st` : '±0 st', cw - pad, pad + fp / 2, oc > 0 ? COL.ch1 : oc < 0 ? COL.ch3 : COL.dim, 'right');
-    if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2, COL.ch4, 'center', fp, 600);
+    if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2 - 8, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
       bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, 'метка на красном — прыгай', COL.red, boss.captured.length / boss.active.length);
@@ -2769,13 +2834,14 @@ body.desk .mbtns button:hover{opacity:1}
       ctx.fillStyle = c; ctx.fillRect(cw / 2 - bw / 2, pad + fp + 4, bw * rem / power.dur, 3); ctx.restore();
     } else {
       textScreen(`${victoryRun ? '∞' : 'L' + (level + 1)} · ${MODES[curMode].scope}`, cw / 2, pad + fp / 2, victoryRun ? COL_MODE : COL.silk, 'center');
-      if (!victoryRun && !boss && !bossPending && LEVELS[level].boss && state !== 'title' && !storyQ) drawPartialGate(pad + fp * 2.5, tnow);
+      if (!victoryRun && !boss && !bossPending && LEVELS[level].boss && state !== 'title' && !storyQ) drawPartialGate(pad + fp * 1.4 + clamp(cw / 24, 18, 34) * .6, tnow);
     }
     const len = levelLen();
     const progTxt = boss || bossPending ? ' · BOSS' : isFinite(len) && state !== 'title' ? ` · ${Math.min(99, Math.floor((dist - levelStart) / len * 100))}%` : '';
-    textScreen(`${String(Math.floor(dist / 48)).padStart(4, '0')} cyc${progTxt}`, pad, ch - pad - fp / 2, boss ? COL.red : COL.silk, 'left');
-    textScreen(`${bpmNow()} BPM`, cw - pad, ch - pad - fp / 2, COL.silk, 'right');
+    textScreen(`${String(Math.floor(dist / 48)).padStart(4, '0')} cyc${progTxt}`, pad, ch - pad - fp / 2 - 8, boss ? COL.red : COL.silk, 'left');
+    textScreen(`${bpmNow()} BPM`, cw - pad, ch - pad - fp / 2 - 8, COL.silk, 'right');
 
+    drawProgressBar(dt);
     if (storyQ) drawStoryText(tnow);
     if (touchSeen && state === 'play' && !storyQ) {
       if (foldPtr) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(255,92,157,.05)'; ctx.fillRect(0, 0, cw / 2, ch); ctx.restore(); }
@@ -2796,17 +2862,21 @@ body.desk .mbtns button:hover{opacity:1}
 
     // banners
     const tutCard = tut && slow < .97;
-    if (banner && state !== 'title' && !storyQ && !tutCard) {
+    if (banner && state !== 'title' && !storyQ && !tutCard && !pop) {
       const t = banner.t, a = t < .3 ? t / .3 : t > 2 ? Math.max(0, (2.6 - t) / .6) : 1;
       const big = clamp(cw / 20, 18, 40);
       textScreen(banner.l1.toUpperCase(), cw / 2, ch * .3, banner.red ? COL.red : COL.ch1, 'center', big, 700, '"Unbounded", "Arial Black", sans-serif', a);
       textScreen(banner.l2, cw / 2, ch * .3 + big * .95, COL.silk, 'center', fp + 2, 500, undefined, a);
     }
     if (toast) {
-      const t = toast.t, a = t < .15 ? t / .15 : t > 1.3 ? Math.max(0, (1.8 - t) / .5) : 1;
-      const bt = boss && !boss.dead;
-      crispText(bt ? toast.text.toUpperCase() : toast.text, cw / 2, ch * .46, toast.power && power ? powerColor(power.type, tnow) : toast.color, 'center',
-        bt ? clamp(cw / 26, 16, 28) : fp + 1, bt ? 700 : 600, bt ? '"Unbounded", "Arial Black", sans-serif' : undefined, a);
+      const t = toast.t, a = t < .12 ? t / .12 : t > 1.3 ? Math.max(0, (1.8 - t) / .5) : 1;
+      const sc = t < .2 ? 1 + .35 * Math.pow(1 - t / .2, 2) : 1; // pops in, settles
+      bigText(toast.text.toUpperCase(), cw / 2, ch * .5 - (1 - a) * 8, toast.power && power ? powerColor(power.type, tnow) : toast.color, clamp(cw / 26, 17, 30) * sc, a);
+    }
+    if (pop) {
+      const t = pop.t, a = t < .08 ? t / .08 : t > .75 ? Math.max(0, (1.1 - t) / .35) : 1;
+      const sc = t < .22 ? 1 + .6 * Math.pow(1 - t / .22, 2) : 1;
+      bigText(pop.text, cw / 2, ch * .33 - t * 14, pop.color, clamp(cw / 11, 34, 84) * sc, a);
     }
     drawTut();
   }
