@@ -185,6 +185,14 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
 .mbtns button{pointer-events:auto;width:44px;height:40px;border-radius:6px;border:1px solid #3a3d42;background:rgba(33,35,40,.85);color:var(--silk);font-size:16px;line-height:1;cursor:pointer}
 .mbtns button[aria-pressed="true"]{color:#55585f}
 @media (orientation:landscape){body.playing .mbar{flex-direction:column;align-items:flex-start;bottom:auto}}
+/* desktop: the page is just the scope; the test picker floats when #test is in the address */
+body.playing.testing .deck{display:block;position:fixed;left:10px;bottom:10px;z-index:30;padding:8px 10px;border-radius:6px;background:rgba(33,35,40,.92)}
+body.playing.testing .deck .ro,body.playing.testing .deck #mute{display:none}
+body.desk.playing .mbar{top:auto;left:auto;bottom:calc(10px + 2.4em);right:10px;flex-direction:row;align-items:center;gap:10px}
+body.desk .mgate{display:none}
+body.desk .mscore{font-size:13px;opacity:.7}
+body.desk .mbtns button{width:34px;height:30px;font-size:13px;opacity:.5;transition:opacity .15s}
+body.desk .mbtns button:hover{opacity:1}
 .modes-pick{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:min(240px,100%)}
 .modes-pick[hidden]{display:none}
 .mode2{font-family:var(--f-display);font-weight:500;font-size:13px;letter-spacing:.03em;background:transparent;color:var(--silk);
@@ -213,6 +221,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       <span class="mbtns">
         <button type="button" id="mMute" aria-label="Звук">♪</button>
         <button type="button" id="mPause" aria-label="Пауза">❚❚</button>
+        <button type="button" id="mFs" aria-label="Во весь экран" title="Во весь экран · F" hidden>⛶</button>
       </span>
     </div>
     <div class="screen" id="screen">
@@ -1638,7 +1647,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     chip.textContent = 'READY'; $('ovTitle').textContent = 'Ждём триггер';
     $('ovText').textContent = 'На осциллограф напали цифровые формы. Синус выходит на развёртку.'; $('ovText').classList.add('opt');
     ovEl.classList.add('is-title');
-    $('ovModes').hidden = false; $('ovBtn').hidden = true; $('ovBtn2').hidden = true; $('ovBtn3').hidden = true; $('ovTip').hidden = !coarse;
+    $('ovModes').hidden = false; $('ovBtn').hidden = true; $('ovBtn2').hidden = true; $('ovBtn3').hidden = true; $('ovTip').hidden = false;
     renderLevelChips(unlocked > 0);
     ovEl.hidden = false;
   }
@@ -1690,6 +1699,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     else if (k === 'KeyP' || k === 'Escape') { state === 'paused' ? resume() : pause(); }
     else if (k === 'KeyM') toggleMute();
     else if (k === 'KeyG') toggleGod();
+    else if (k === 'KeyF') toggleFs();
   });
   addEventListener('keyup', e => { if (e.code === 'ArrowDown' || e.code === 'KeyS') foldKey = false; });
   addEventListener('blur', () => { foldKey = foldPtr = false; });
@@ -1699,6 +1709,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   // A mouse click anywhere jumps (the keyboard covers fold on desktop).
   const coarse = matchMedia('(pointer: coarse)').matches;
   let foldPtrId = null, touchSeen = coarse, touchHintT = 0;
+  let deskHints = true;
   const bezelEl = $('bezel'), zoneL = $('zoneL'), zoneR = $('zoneR');
   let playMode = false, wakeLock = null, overAt = 0;
   bezelEl.addEventListener('pointerdown', e => {
@@ -1726,6 +1737,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   $('mMute').addEventListener('click', e => { e.stopPropagation(); toggleMute(); $('mMute').setAttribute('aria-pressed', String(muted)); });
   $('mMute').setAttribute('aria-pressed', String(muted));
   if (coarse) $('ovTip').hidden = false;
+  else $('ovTip').textContent = 'Пробел / ↑ — прыжок · ↓ — фолд · F — во весь экран';
 
   // Full-screen play on phones: the scope fills the display, the page around it steps aside
   function layoutPlay() {
@@ -1738,14 +1750,24 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     else { w = aw; h = Math.min(ah * .6, aw * 1.08); }           // portrait: scope on top, thumbs below
     screenEl.style.width = Math.floor(w) + 'px'; screenEl.style.height = Math.floor(h) + 'px';
   }
+  // Desktop: the page is the game from the start, filling the window; F or ⛶ for real full screen
+  const desk = !coarse;
+  function toggleFs() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+    } catch (e) {}
+  }
+  $('mFs').addEventListener('click', e => { e.stopPropagation(); e.currentTarget.blur(); toggleFs(); });
   function enterPlayMode() {
-    if (playMode || !touchSeen) return;
+    if (playMode || !(touchSeen || desk)) return;
     playMode = true; document.body.classList.add('playing'); layoutPlay();
+    if (desk) return;
     try { const el = document.documentElement; if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); } catch (e) {}
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wakeLock = w; }).catch(() => {}); } catch (e) {}
   }
   function exitPlayMode() {
-    if (!playMode) return;
+    if (!playMode || desk) return;
     playMode = false; document.body.classList.remove('playing');
     screenEl.style.width = ''; screenEl.style.height = '';
     try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
@@ -2527,6 +2549,12 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         textScreen('◀ держи: фолд', cw * .25, ch - 30, COL.ch3, 'center', fp, 600, undefined, ha);
         textScreen('тап: прыжок ▶', cw * .75, ch - 30, COL.ch1, 'center', fp, 600, undefined, ha);
       }
+    } else if (deskHints && state === 'play' && !storyQ) {
+      if (touchHintT >= 7) deskHints = false; // once per visit
+      const t = touchHintT, ha = .8 * (t < .6 ? t / .6 : t < 5.5 ? 1 : Math.max(0, (7 - t) / 1.5)), yy = ch - pad - fp * 5.5;
+      textScreen('пробел / ↑ — прыжок, в воздухе ещё раз — выше', cw / 2, yy, COL.ch1, 'center', fp, 500, undefined, ha);
+      textScreen('держи ↓ / S — фолд, проползти под функцией', cw / 2, yy + fp * 1.5, COL.ch3, 'center', fp, 500, undefined, ha);
+      textScreen('P пауза · M звук · F во весь экран', cw / 2, yy + fp * 3, COL.dim, 'center', fp * .9, 500, undefined, ha);
     }
 
     // banners
@@ -2601,8 +2629,9 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   }
   $('testGo').addEventListener('click', e => { e.currentTarget.blur(); testJump($('testSel').value); });
   $('testSel').addEventListener('keydown', e => e.stopPropagation());
-  const syncTestPick = () => { document.querySelector('.testpick').hidden = location.hash !== '#test'; };
+  const syncTestPick = () => { const t = location.hash === '#test'; document.querySelector('.testpick').hidden = !t; document.body.classList.toggle('testing', t); };
   syncTestPick(); addEventListener('hashchange', syncTestPick);
+  if (desk) { document.body.classList.add('desk'); $('mFs').hidden = !document.documentElement.requestFullscreen; enterPlayMode(); }
   showTitle();
   resize(); setMode(); hud();
   requestAnimationFrame(frame);
