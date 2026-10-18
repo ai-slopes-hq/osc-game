@@ -192,7 +192,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
 body.playing.testing .deck{display:block;position:fixed;left:10px;bottom:10px;z-index:30;padding:8px 10px;border-radius:6px;background:rgba(33,35,40,.92)}
 body.playing.testing .deck .ro,body.playing.testing .deck #mute{display:none}
 body.desk.playing .mbar{top:auto;left:auto;bottom:calc(10px + 2.4em);right:10px;flex-direction:row;align-items:center;gap:10px}
-body.desk .mgate{display:none}
+body.desk .mgate,body.playing .mgate{display:none}
 body.desk .mscore{font-size:13px;opacity:.7}
 body.desk .mbtns button{width:34px;height:30px;font-size:13px;opacity:.5;transition:opacity .15s}
 body.desk .mbtns button:hover{opacity:1}
@@ -485,9 +485,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       prog:[{t:[0,3,7],r:-12},{t:[-7,-4,0],r:-19},{t:[-5,-1,2],r:-17},{t:[0,3,7],r:-12}] },
   ]);
   const POWERS = {
-    mdr: { dur:5.5, name:'MDR', desc:'Меандр: неуязвимость' },
-    tri: { dur:8, name:'TRI', desc:'Треугольник: лунный прыжок' },
-    cpx: { dur:8, name:'CPX', desc:'Комплекс: FM режет висящие' },
+    mdr: { dur:5.5, name:'MDR', desc:'неуязвимость' },
+    tri: { dur:8, name:'TRI', desc:'лунный прыжок' },
+    cpx: { dur:8, name:'CPX', desc:'режет висящие' },
   };
   const powerColor = (type, t) => type === 'mdr' ? CYCLE[Math.floor(t * 12) % CYCLE.length] : type === 'cpx' ? COL.math : type === 'tri' ? COL.tri : COL.ch1;
 
@@ -1161,18 +1161,18 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       case 'spike': Object.assign(o, { w: R(26, 34), h: R(36, 48), label: 'δ(x)', samples: 40, prof: u => 1 - Math.abs(2 * u - 1) }); break;
       case 'gauss': Object.assign(o, { w: R(70, 100), h: R(46, 70), label: 'y = e^(−x²)', prof: u => Math.exp(-Math.pow((u - .5) * 5, 2)) }); break;
       // effect gates: not lethal, they change the signal for a while. Jump over to avoid.
-      case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ выпрямитель: перепрыгни', prof: () => 1 }); break;
-      case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ кольцевой: перепрыгни', prof: () => 1 }); break;
+      case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ выпрямитель', prof: () => 1 }); break;
+      case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ кольцевой', prof: () => 1 }); break;
       case 'pi': Object.assign(o, { w: R(24, 34), h: R(110, 128), tall: true, label: 'y = Π(x)', prof: u => edge(u, .1) }); break;
       case 'sqrt': Object.assign(o, { w: R(46, 60), h: R(104, 122), tall: true, label: 'y = √x', prof: u => u > .96 ? (1 - u) / .04 : Math.sqrt(u / .96) }); break;
       case 'fft': {
         const n = 8, envl = Array.from({ length: n }, (_, i) => clamp(1 - i / n * .5 + R(-.15, .12), .35, 1)), ph = Array.from({ length: n }, () => R(0, .2));
-        Object.assign(o, { w: n * 10, h: R(68, 78), label: '|X(f)|', samples: 200, hint: '↑ прыгай, когда полосы падают',
+        Object.assign(o, { w: n * 10, h: R(68, 78), label: '|X(f)|', samples: 200, hint: '↑ на спаде',
           prof: u => { if (u >= 1) return 0; const i = Math.min(n - 1, Math.floor(u * n)); if (u * n - i > .72) return 0; return envl[i] * (.16 + .84 * Math.exp(-4.5 * frac(beatPos - ph[i]))); } });
       } break;
       case 'am': {
         const ph = R(0, 2);
-        Object.assign(o, { w: R(50, 64), h: R(66, 80), label: 'AM · sin ωt', hint: '↑ лови, когда спадёт',
+        Object.assign(o, { w: R(50, 64), h: R(66, 80), label: 'AM · sin ωt', hint: '↑ на спаде',
           prof: u => (1 - Math.abs(2 * u - 1)) * (.25 + .75 * (.5 + .5 * Math.sin(Math.PI * (beatPos + ph)))) });
       } break;
       case 'redux': Object.assign(o, { w: R(70, 96), h: R(48, 70), label: 'redux(sin x)', samples: 160,
@@ -1190,7 +1190,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         const x = (u - .5) * 16, s = Math.abs(x) < 1e-6 ? 1 : Math.sin(x) / x; return MINC + 46 * (1 - Math.abs(s)); } }); break;
       case 'floor': Object.assign(o, { ground: false, w: R(110, 150), label: 'y = ⌊x⌋', samples: 160, prof: u => MINC + 10 * Math.floor(Math.abs(u - .5) * 2 * 3.999) }); break;
       case 'inv': Object.assign(o, { ground: false, w: R(100, 140), label: 'y = 1/x', prof: u => MINC + Math.min(70, 1.6 / (u + .005)) }); break;
-      case 'comb': Object.assign(o, { ground: false, w: R(120, 160), label: 'H(z) = 1 − z⁻ᴺ', samples: 240, hint: '↓ гребёнка: только фолд',
+      case 'comb': Object.assign(o, { ground: false, w: R(120, 160), label: 'H(z) = 1 − z⁻ᴺ', samples: 240, hint: '↓ только фолд',
         prof: u => frac(u * 7) < .42 ? MINC : MINC + 42 }); break;
       case 'sh': {
         const v = Array.from({ length: 9 }, () => Math.random()); v[4] = 0; v[2] = Math.min(v[2], .15);
@@ -1426,7 +1426,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const back = b.removed.pop();
       if (back) { b.rem.push(back); b.rem.sort((x, y) => y - x); b.hp = b.rem.length; setDubLayers(b.hp); }
       tones([0, 6], 'sawtooth', .04, .06, .2);
-      toast = { t: 0, text: back ? `не по порядку · h${back} вернулась` : `сначала h${nx}`, color: COL.red };
+      toast = { t: 0, text: back ? `h${back} вернулась` : `сначала h${nx}`, color: COL.red };
       buzz(60);
     }
   }
@@ -1437,8 +1437,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     for (let i = 0; i < 2; i++) idxTokens.push({ x: dist + boss.x - 10, h: -(boss.B.y ?? -128), vx: R(-150, -50), vh: R(40, 170), th: pick([12, 12, 34, 60, 84]), t: 0 });
   }
   function applyFx(kind) {
-    if (kind === 'rect') { fx.rect = 5; setRect(true); toast = { t: 0, text: 'RECTIFY · прыжок слабее', color: COL.fx }; }
-    else { fx.ring = 6; fx.ringPh = Math.PI / 2; setRing(true); toast = { t: 0, text: 'RING MOD · не задень двойника', color: COL.fx }; }
+    if (kind === 'rect') { fx.rect = 5; setRect(true); toast = { t: 0, text: 'RECTIFY · ниже прыжок', color: COL.fx }; }
+    else { fx.ring = 6; fx.ringPh = Math.PI / 2; setRing(true); toast = { t: 0, text: 'RING MOD · двойник', color: COL.fx }; }
     noise(.18, 'bandpass', 2500, 600, .2);
   }
   // the lower sideband: wanders ahead of the hero and mirrors the hero's height
@@ -1493,13 +1493,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     b.duty = clamp(b.base + .03 * Math.sin(b.t * 3.1), .02, .99); // a living PWM, never quite still
     const grounded = onGround && !standing;
     if (grounded && b.base > SQ_FINAL + .001) { // the last stretch only counts as one unbroken chain
-      b.base = SQ_FINAL; b.chain = 0; toast = { t: 0, text: 'серия прервана · 75%', color: COL.red }; tones([7, 0], 'square', .05, .05, .15);
+      b.base = SQ_FINAL; b.chain = 0; toast = { t: 0, text: 'обрыв · 75%', color: COL.red }; tones([7, 0], 'square', .05, .05, .15);
     }
     if (grounded) b.chain = 0;
     if (b.base < SQ_FINAL || grounded) b.base = Math.max(.5, b.base - (grounded ? SQ_RELAX : SQ_AIR) * dt); // he always pulls back
     trackSquare(dt);
     if (b.base >= SQ_WIN) {
-      toast = { t: 0, text: '100% · ПОСТОЯННЫЙ ТОК', color: COL.mdr };
+      toast = { t: 0, text: '100%!', color: COL.mdr };
       for (const pf of platforms) if (pf.kind === 'pulse' && pf.fallT < 0) pf.fallT = .2;
       hitBoss(1, 'pwm');
       return;
@@ -1585,7 +1585,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (b.round < SEQ_ROUNDS.length - 1) {
           seqRound(b, b.round + 1); sfxLevel(); buzz([20, 30, 20]);
           showPop(`РАУНД ${b.round + 1}`, COL.red, 2);
-          toast = { t: 0, text: b.round === 1 ? 'вдвое быстрее · 6 шагов' : '16 шагов · узор плывёт', color: COL.red };
+          toast = { t: 0, text: b.round === 1 ? 'быстрее!' : 'узор плывёт', color: COL.red };
         } else hitBoss(1, 'seq');
       }
     } else if (b.active.includes(i)) {
@@ -1596,7 +1596,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
       b.flash = b.flash.map(() => .8); b.hitT = .2;
       tones([-1, -6], 'square', .05, .06, .2); noise(.12, 'highpass', 2000, 5000, .2);
-      toast = { t: 0, text: lost !== undefined ? `мимо · −1 шаг · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}` : `мимо · сдвиг ${sh > 0 ? '≫' : '≪'}${Math.abs(sh)}`, color: COL.red };
+      toast = { t: 0, text: lost !== undefined ? 'мимо · −1 шаг' : 'мимо', color: COL.red };
     }
   }
   function landOn(pf) {
@@ -1606,14 +1606,14 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const b = boss;
       if (pf.trap) { // an inverted pulse: it knocks his duty back
         b.base = Math.max(.5, Math.min(b.base, SQ_FINAL) - .1); b.chain = 0; b.hitT = .2;
-        tones([0, -5], 'square', .06, .05, .2); showPop('−10%', COL.red, 2); toast = { t: 0, text: 'инвертированный импульс', color: COL.red };
+        tones([0, -5], 'square', .06, .05, .2); showPop('−10%', COL.red, 2); toast = { t: 0, text: 'ловушка', color: COL.red };
         return;
       }
       b.chain++;
       const gain = b.base >= SQ_FINAL ? (SQ_WIN - SQ_FINAL) / SQ_FINAL_CHAIN + .002 : SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
       b.base = Math.min(1, b.base < SQ_FINAL ? Math.min(SQ_FINAL, b.base + gain) : b.base + gain); b.hitT = .2; // below 75% gains stop at 75%
       tones([24, 31].map(x => x + Math.round((b.base - .5) * 14)), 'square', .05, .06, .18);
-      toast = { t: 0, text: b.chain > 1 ? `+${Math.round(gain * 100)}% · СЕРИЯ ×${b.chain}` : `+${Math.round(gain * 100)}%`, color: COL.ch4 };
+      toast = { t: 0, text: b.chain > 1 ? `+${Math.round(gain * 100)}% ×${b.chain}` : `+${Math.round(gain * 100)}%`, color: COL.ch4 };
       return;
     }
     if (pf.kind === 'fm') {
@@ -1703,7 +1703,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   function tutFinish() {
     tutDone.add(tut.cat); store.set('osc-adv-tut', [...tutDone].join(','));
-    if (tut.cat === 'ceil') toast = { t: 0, text: 'держи, пока не проползёшь', color: COL.ch3 };
+    if (tut.cat === 'ceil') toast = { t: 0, text: 'держи!', color: COL.ch3 };
     tones([12, 19, 24], 'sine', .03, .05, .12);
     tut = null;
   }
@@ -1737,13 +1737,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (!tut || slow > .97) return;
     const a = clamp((1 - slow) * 1.4, 0, 1), touch = touchSeen, fp = fontPx();
     const card = {
-      ground: ['ПРЫЖОК', touch ? 'тап по правой половине экрана' : 'пробел или ↑', 'арпеджио подпрыгнет на октаву', COL.ch1],
-      ceil: ['ФОЛД', touch ? 'держи палец на левой половине' : 'держи ↓ или S', 'волна сожмётся и проползёт под функцией', COL.ch3],
+      ground: ['ПРЫЖОК', touch ? 'тап справа' : 'пробел или ↑', 'мелодия выше', COL.ch1],
+      ceil: ['ФОЛД', touch ? 'держи слева' : 'держи ↓ или S', 'проползёшь снизу', COL.ch3],
       tall: tut.phase === 1
-        ? ['ДВОЙНОЙ ПРЫЖОК', touch ? 'сначала тап справа' : 'сначала пробел или ↑', 'стена высокая — одного прыжка мало', COL.ch1]
-        : ['ЕЩЁ РАЗ!', touch ? 'тап в воздухе' : 'пробел в воздухе', 'второй прыжок — на две октавы выше', COL.ch1],
+        ? ['ДВОЙНОЙ', touch ? 'тап справа' : 'пробел или ↑', 'стена высокая', COL.ch1]
+        : ['ЕЩЁ РАЗ!', touch ? 'тап в воздухе' : 'пробел в воздухе', 'на две октавы', COL.ch1],
     }[tut.cat];
-    const big = clamp(cw / 18, 20, 40), cy = ch * .3;
+    const big = MOB ? clamp(cw / 10, 30, 48) : clamp(cw / 18, 20, 40), cy = ch * .3;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = `600 ${fp + 3}px "IBM Plex Mono", ui-monospace, monospace`;
     const w = Math.min(cw - 24, Math.max(ctx.measureText(card[1]).width, ctx.measureText(card[2]).width * .85, big * card[0].length * .72) + 48);
@@ -2261,7 +2261,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]);
     ctx.closePath(); ctx.fill(); ctx.restore();
   }
-  const fontPx = () => clamp(cw / 52, 11, 17);
+  const MOB = matchMedia('(pointer: coarse)').matches; // phones/tablets: bigger type, fewer words
+  const fontPx = () => MOB ? clamp(cw / 26, 14, 20) : clamp(cw / 52, 11, 17);
   function textScreen(s, sx, sy, color, align = 'center', px = fontPx(), weight = 500, family = '"IBM Plex Mono", ui-monospace, Menlo, monospace', alpha = 1) {
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = alpha;
     ctx.font = `${weight} ${px}px ${family}`;
@@ -2464,7 +2465,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function drawStoryText(tnow) {
     const [who, line] = storyQ.lines[storyQ.i], c = CAST[who];
     const pad = 14, fp = fontPx(), top = pad + fp * 2.6;
-    const bodyPx = clamp(cw / 52, 13, 17), maxW = Math.min(cw * (cw / ch > 1.4 ? .48 : .64), 560); // wide screens: keep clear of the speakers on the right
+    const bodyPx = MOB ? clamp(cw / 22, 16, 21) : clamp(cw / 52, 13, 17), maxW = Math.min(cw * (cw / ch > 1.4 ? .48 : .64), 560); // wide screens: keep clear of the speakers on the right
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // A dark plate behind the dialogue, wiped clean every frame: the phosphor trails of the scene
     // (and of the text itself) never build up under the letters, so they stay sharp.
@@ -2512,7 +2513,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
 
   // Boss fights: one big, short line at the top (what matters now), an optional bar, a few words under it
   function bossCallout(main, sub, color, frac = null) {
-    const fp = fontPx(), big = clamp(cw / 20, 20, 38), y0 = 10 + fp * 1.9 + big * .55;
+    const fp = fontPx(), big = MOB ? clamp(cw / 12, 28, 44) : clamp(cw / 20, 20, 38), y0 = 10 + fp * 1.9 + big * .55;
     crispText(main, cw / 2, y0, color, 'center', big, 700, '"Unbounded", "Arial Black", sans-serif');
     let yy = y0 + big * .7;
     if (frac !== null) {
@@ -2528,7 +2529,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // partials needed for the boss: Lissajous icon, big count, a bar
   function drawPartialGate(yy, tnow) {
     const need = NEED[level], have = Math.min(levelPartials, need), done = have >= need, fp = fontPx();
-    const big = clamp(cw / 24, 18, 34), col = done ? COL.ch4 : 'rgba(120,236,126,.85)', label = done ? `${have}/${need} · БОСС` : `${have}/${need}`;
+    const big = MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34), col = done ? COL.ch4 : 'rgba(120,236,126,.85)', label = done ? `${have}/${need} · БОСС` : `${have}/${need}`;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = `700 ${big}px "IBM Plex Mono", ui-monospace, monospace`;
     const tw = ctx.measureText(label).width, ix = cw / 2 - tw / 2 - 16, r = big * .42;
@@ -2773,7 +2774,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (ob.gate === 'rect') trace([mx - 7, my - 8, mx - 7, my + 8, mx + 6, my, mx - 7, my - 8, mx + 6, my, mx + 6, my - 8, mx + 6, my + 8], COL.fx, 1.6, ga); // diode
         else { const q = []; for (let i = 0; i <= 30; i++) { const a = i / 30 * Math.PI * 2; q.push(mx + Math.cos(a) * 8, my + Math.sin(a) * 8); } trace(q, COL.fx, 1.6, ga); trace([mx - 5.6, my - 5.6, mx + 5.6, my + 5.6], COL.fx, 1.6, ga); trace([mx + 5.6, my - 5.6, mx - 5.6, my + 5.6], COL.fx, 1.6, ga); }
         if (!ob.used) {
-          text(ob.label, mx, top - 11, COL.fx);
+          if (!MOB) text(ob.label, mx, top - 11, COL.fx);
           if (ob.showHint) text(ob.showHint, mx, top - 27, COL.ch1, 'center', fontPx(), 600);
         }
         continue;
@@ -2785,7 +2786,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (!ob.broken) fillPoly(p, c, .05);
         trace(p, c, 1.7, a);
         if (!ob.broken) {
-          text(ob.label, ox + ob.w / 2, GROUND - ob.h - 11, c);
+          if (!MOB) text(ob.label, ox + ob.w / 2, GROUND - ob.h - 11, c);
           if (ob.showHint) text(ob.showHint, ox + ob.w / 2, GROUND - ob.h - 27, COL.ch1, 'center', fontPx(), 600);
         }
       } else {
@@ -2795,8 +2796,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (!ob.broken) fillPoly(p, c, .06);
         trace(p, c, 1.7, a);
         if (!ob.broken) {
-          text(ob.label, ox + ob.w / 2, TOP + 58, c);
-          if (ob.showHint) text(ob.showHint, ox + ob.w / 2, TOP + 76, COL.ch1, 'center', fontPx(), 600);
+          if (!MOB) text(ob.label, ox + ob.w / 2, TOP + 58, c);
+          if (ob.showHint) text(ob.showHint, ox + ob.w / 2, MOB ? TOP + 150 / scale : TOP + 76, COL.ch1, 'center', fontPx(), 600); // phones: below the big partial counter
         }
       }
     }
@@ -2978,22 +2979,22 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     // readouts
     const pad = 10, fp = fontPx();
     const wname = { sine: 'SIN', mdr: 'MDR', tri: 'TRI', cpx: 'CPX' }[power ? power.type : 'sine'];
-    textScreen(`CH1 ${wname} ${state === 'play' ? noteName() : 'A3'}`, pad, pad + fp / 2, power ? powerColor(power.type, tnow) : COL.ch1, 'left');
+    if (!MOB) textScreen(`CH1 ${wname} ${state === 'play' ? noteName() : 'A3'}`, pad, pad + fp / 2, power ? powerColor(power.type, tnow) : COL.ch1, 'left');
     const oc = state === 'play' ? octave : 0;
-    textScreen(oc ? `${oc > 0 ? '+' : '−'}${Math.abs(oc)} st` : '±0 st', cw - pad, pad + fp / 2, oc > 0 ? COL.ch1 : oc < 0 ? COL.ch3 : COL.dim, 'right');
+    if (!MOB) textScreen(oc ? `${oc > 0 ? '+' : '−'}${Math.abs(oc)} st` : '±0 st', cw - pad, pad + fp / 2, oc > 0 ? COL.ch1 : oc < 0 ? COL.ch3 : COL.dim, 'right');
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2 - 8, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
-      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, `раунд ${boss.round + 1}/3 · прыгай на красный шаг`, COL.red, boss.captured.length / boss.active.length);
+      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, `раунд ${boss.round + 1}/3`, COL.red, boss.captured.length / boss.active.length);
     if (boss && boss.B.kind === 'chords' && !boss.dead && !storyQ) {
       if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
-      else bossCallout('ЩИТ', 'жди аккорд', COL.red);
+      else bossCallout('ЩИТ', 'жди', COL.red);
     }
-    if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1 · не бери 0', COL.ch4, boss.bits / 16);
+    if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1, не 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
-      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.base >= SQ_FINAL ? `финал: серия ×${boss.chain}/${SQ_FINAL_CHAIN} без земли` : boss.chain > 1 ? `серия ×${boss.chain}` : 'зелёные — да, красные — нет', COL.red, (boss.base - .5) / (SQ_WIN - .5));
+      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.base >= SQ_FINAL ? `финал ${boss.chain}/${SQ_FINAL_CHAIN} без земли` : boss.chain > 1 ? `серия ×${boss.chain}` : 'по зелёным', COL.red, (boss.base - .5) / (SQ_WIN - .5));
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
-      const nx = harmNext(), yy = bossCallout(`СНИМИ h${nx}`, 'зелёные лови · красные мимо', COL.ch4) - fp * .4;
+      const nx = harmNext(), yy = bossCallout(`СНИМИ h${nx}`, 'лови зелёные', COL.ch4) - fp * .4;
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.font = `700 ${fp}px "IBM Plex Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const cellW = Math.min(30, cw / 13), x0 = cw / 2 - cellW * 4.5;
@@ -3023,12 +3024,12 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       ctx.fillStyle = c; ctx.fillRect(cw / 2 - bw / 2, pad + fp + 4, bw * rem / power.dur, 3); ctx.restore();
     } else {
       textScreen(`${victoryRun ? '∞' : 'L' + (level + 1)} · ${MODES[curMode].scope}`, cw / 2, pad + fp / 2, victoryRun ? COL_MODE : COL.silk, 'center');
-      if (!victoryRun && !boss && !bossPending && LEVELS[level].boss && state !== 'title' && !storyQ) drawPartialGate(pad + fp * 1.4 + clamp(cw / 24, 18, 34) * .6, tnow);
+      if (!victoryRun && !boss && !bossPending && LEVELS[level].boss && state !== 'title' && !storyQ) drawPartialGate(pad + fp * 1.4 + (MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34)) * .6, tnow);
     }
     const len = levelLen();
     const progTxt = boss || bossPending ? ' · BOSS' : isFinite(len) && state !== 'title' ? ` · ${Math.min(99, Math.floor((dist - levelStart) / len * 100))}%` : '';
-    textScreen(`${String(Math.floor(dist / 48)).padStart(4, '0')} cyc${progTxt}`, pad, ch - pad - fp / 2 - 8, boss ? COL.red : COL.silk, 'left');
-    textScreen(`${bpmNow()} BPM`, cw - pad, ch - pad - fp / 2 - 8, COL.silk, 'right');
+    if (!MOB) textScreen(`${String(Math.floor(dist / 48)).padStart(4, '0')} cyc${progTxt}`, pad, ch - pad - fp / 2 - 8, boss ? COL.red : COL.silk, 'left');
+    if (!MOB) textScreen(`${bpmNow()} BPM`, cw - pad, ch - pad - fp / 2 - 8, COL.silk, 'right');
 
     drawProgressBar(dt);
     if (storyQ) drawStoryText(tnow);
@@ -3060,7 +3061,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (toast) {
       const t = toast.t, a = t < .12 ? t / .12 : t > 1.3 ? Math.max(0, (1.8 - t) / .5) : 1;
       const sc = t < .2 ? 1 + .35 * Math.pow(1 - t / .2, 2) : 1; // pops in, settles
-      bigText(toast.text.toUpperCase(), cw / 2, ch * .5 - (1 - a) * 8, toast.power && power ? powerColor(power.type, tnow) : toast.color, clamp(cw / 26, 17, 30) * sc, a);
+      bigText(toast.text.toUpperCase(), cw / 2, ch * .5 - (1 - a) * 8, toast.power && power ? powerColor(power.type, tnow) : toast.color, (MOB ? clamp(cw / 15, 22, 34) : clamp(cw / 26, 17, 30)) * sc, a);
     }
     if (pop) {
       const t = pop.t, a = t < .08 ? t / .08 : t > .75 ? Math.max(0, (1.1 - t) / .35) : 1;
@@ -3081,13 +3082,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fxCv.width, fxCv.height);
     fctx.imageSmoothingEnabled = false; fctx.drawImage(tmpCv, 0, 0, fxCv.width, fxCv.height);
     if (storyQ) return;
-    const fp = fontPx(), big = clamp(cw / 20, 20, 38), cell = Math.min(12, cw / 30), gap = 2, tw = 16 * (cell + gap) - gap;
+    const fp = fontPx(), big = MOB ? clamp(cw / 12, 28, 44) : clamp(cw / 20, 20, 38), cell = Math.min(12, cw / 30), gap = 2, tw = 16 * (cell + gap) - gap;
     fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     fctx.font = `700 ${big}px "Unbounded", "Arial Black", sans-serif`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
     const y0 = 10 + fp * 1.9 + big * .55, yy = y0 + big * .7 - fp * .8;
     fctx.fillStyle = COL.ch4; fctx.fillText(`${boss.bits}/16 БИТ`, cw / 2, y0);
     fctx.font = `600 ${fp + 1}px "IBM Plex Mono", ui-monospace, monospace`; fctx.fillStyle = COL.silk;
-    fctx.fillText('лови 1 · не бери 0', cw / 2, yy + fp * .8 + 22);
+    fctx.fillText('лови 1, не 0', cw / 2, yy + fp * .8 + 22);
     for (let i = 0; i < 16; i++) {
       fctx.fillStyle = i < boss.bits ? COL.ch4 : 'rgba(120,236,126,.18)'; fctx.fillRect(cw / 2 - tw / 2 + i * (cell + gap), yy + fp * .8, cell, 5);
       if (i === 4 || i === 8 || i === 12) { fctx.fillStyle = '#ffffff'; fctx.fillRect(cw / 2 - tw / 2 + i * (cell + gap) - 2, yy + fp * .8 - 3, 1.5, 11); } // checkpoint marks
