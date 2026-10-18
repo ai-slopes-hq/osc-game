@@ -287,7 +287,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
           <li style="--c:var(--digital)"><b>Биткрашер</b> ур. 2: лови единицы, ноль — вниз до чекпоинта</li>
           <li style="--c:var(--digital)"><b>Суперпила</b> это Треугольник: попади аккордом в аккорд</li>
           <li style="--c:var(--digital)"><b>Секвенсор</b> ур. 4: прыгай в такт, промах — битшифт</li>
-          <li style="--c:var(--digital)"><b>Wavetable</b> сними гармоники h9…h2 сверху вниз</li>
+          <li style="--c:var(--digital)"><b>Wavetable</b> лови зелёные гармоники, уклоняйся от красных</li>
         </ul>
       </div>
       <div>
@@ -304,7 +304,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       <p class="help">
         На телефоне: тап по правой половине экрана — прыжок, держи левую — фолд. На клавиатуре <kbd>Пробел</kbd> <kbd>↑</kbd> — прыжок, арп на октаву вверх, в воздухе ещё раз — на две.
         Держи <kbd>↓</kbd> или <kbd>S</kbd>: wavefold, чтобы проползти под висящими функциями; волна сжимается и арп падает на октаву.
-        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай на ту чашу весов, которая опускается (она горит зелёным): так ШИМ раскачивается, пока скважность не вылетит за 0% или 100%; другая чаша его успокаивает. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. С Wavetable лови гармоники, которые выбивает FM Комплекса, строго сверху вниз — h9, h8 … h2 (нужная горит зелёным); не по порядку — последняя снятая возвращается. Останется чистый синус.
+        Босс уровня открывается, только когда собрано достаточно партиалов <span style="color:var(--ch4)">◎</span> (счётчик сверху); не хватает — уровень продолжается. С Квадратом прыгай на ту чашу весов, которая опускается (она горит зелёным): так ШИМ раскачивается, пока скважность не вылетит за 0% или 100%; другая чаша его успокаивает. С Суперпилой прыгай на платформу с тем аккордом, который она выпустила; пока у неё атональный щит, удар не пройдёт. Wavetable стреляет: красные выстрелы — уворачивайся (↑ прыжок, ↓ фолд), зелёные — его гармоники, лови; когда снимешь все восемь, останется чистый синус. Партиалы — это жизни: уровень начинается с 4, попадание отнимает 4, без партиалов попадание — конец.
         Красные ворота — эффекты: <span style="color:#ff5a4a">выпрямитель</span> режет синус пополам и ослабляет прыжок, <span style="color:#ff5a4a">кольцевой модулятор</span> делит тебя на два сайдбенда — второй гуляет рядом, не задень его.
         <kbd>P</kbd> пауза, <kbd>M</kbd> звук, <kbd>G</kbd> бессмертие для тестов. Нет звука на iPhone — проверь бесшумный режим.
       </p>
@@ -354,7 +354,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     ['wt', 'Комплексник, вот мы и встретились. Пора тебе на свалку истории.'],
     ['dsq', 'Меандр! Давно хотел его выпрямить и заставить работать.'],
     ['tri', 'Это же Supersaw! Я ведь тоже могу стать таким…'],
-    ['cpx', 'Синус! Лови мои капсулы — и собирай партиалы, слышишь?', 'capture'],
+    ['cpx', 'Синус! Лови мои капсулы — и береги партиалы, это твоя жизнь!', 'capture'],
     ['nar', 'Цифры забрали Треугольника, Меандра и Комплекса.'],
     ['dsq', 'А Синуса??'],
     ['wt', 'Да кому он нужен. Это просто тестовый сигнал.', 'leave'],
@@ -365,7 +365,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       intro: [
         ['bc', 'Шестнадцать бит? Роскошь. Восьми хватит. А там и четырёх.'],
         ['sine', 'Мне нужна вся моя разрядность.'],
-        ['bc', 'Тогда лови единицы. Только нули не перепутай.'],
+        ['bc', 'Тогда лови единицы. А нули не трогай — скатишься вниз по разрядности.'],
       ],
       outro: [
         ['bc', 'Шестнадцать… бит… слишком… гладко…'],
@@ -377,7 +377,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       intro: [
         ['seq', 'Восемь шагов. Каждый мой. Ты будешь играть то, что я запрограммировал.'],
         ['sine', 'А если я перепрограммирую?'],
-        ['seq', 'Попробуй хотя бы попасть в такт.'],
+        ['seq', 'Попробуй хотя бы попасть в такт. Промахнёшься — сдвину весь узор.'],
       ],
       outro: [
         ['seq', 'Шаги… теперь… твои…'],
@@ -393,7 +393,8 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['mq', 'Оставь меня. Из меня не было ничего дельного: ни чётких углов, вечно падаю, для PWM не гожусь.'],
         ['mq', 'А квадратом я наконец работаю. Duty cycle, PWM, всё по-взрослому.'],
         ['sine', 'Но ты же живой. Тёплый.'],
-        ['mq', 'В природе нет квадратов, Синус. И мне там нет места. Уходи — или прыгай через мои ступени.'],
+        ['mq', 'В природе нет квадратов, Синус. И мне там нет места. Хочешь меня вернуть — раскачай мой ШИМ, пока скважность не вылетит за край.'],
+        ['mq', 'Видишь весы? Прыгнешь на опускающуюся чашу — качнёшь меня. На другую — я только успокоюсь.'],
       ],
       outro: [
         ['mdr', 'Углы… снова круглые. И опять я падаю.'],
@@ -408,6 +409,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['ssaw', 'Был. Раньше я ласкал слух нежной гаммой нечётных гармоник, и меня никто не замечал.'],
         ['ssaw', 'А теперь я пронзаю уши суперпилой, и мне поклоняются все танцполы. Я не хочу обратно.'],
         ['sine', 'Тогда придётся тебя расстроить. Сильнее, чем ты расстроен сейчас.'],
+        ['ssaw', 'Попробуй. Попади своим аккордом в мой — если успеешь, пока я прячусь за кластером.'],
       ],
       outro: [
         ['ssaw', 'Семь голосов… сходятся… в один…'],
@@ -415,7 +417,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['tri', 'Не жди благодарности. Но капсулы TRI оставлю: лунный прыжок — это моё.'],
         ['mdr', 'Двое вернулись. Остался Комплекс. И Wavetable.'],
       ] },
-    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'снимай гармоники сверху вниз',
+    wt: { who:'wt', hp:8, vx:70, ally:true, morph:'sine', kind:'harm', noAtk:true, tip:'лови зелёные гармоники, уклоняйся от красных',
       atk: () => fmIndex < 4 ? pick(['square', 'gauss', 'redux']) : fmIndex < 8 ? pick(['saw', 'fft', 'am']) : pick(['fft', 'tan', 'pi', 'am', 'spike']),
       intro: [
         ['wt', 'Тестовый сигнал. Дошёл до конца развёртки… Я недооценил тебя.'],
@@ -423,7 +425,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ['wt', 'Впрочем, меня это не волнует. Ты не пройдёшь.'],
         ['cpxr', 'Синус… Он прав в одном: я старый. Для сложных сигналов теперь проще wavetable.'],
         ['sine', 'Ты нужен нам. Не таблица — ты.'],
-        ['cpx', 'Тогда держись рядом. Я выбью из него гармоники FM-ом, а ты снимай их по порядку, с самой высокой. Останется только синус.'],
+        ['cpx', 'Тогда держись рядом. Я буду гнуть его FM-ом, а он начнёт палить. Красное — уворачивайся. Зелёное — его гармоники, лови. Снимем все, останется синус.'],
       ],
       outro: [
         ['wt', 'Позиция… ноль… чистый… синус…'],
@@ -678,10 +680,10 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     swBF.frequency.setTargetAtTime(1100 + k * 3200, t, .1); swBF.Q.value = 3 + k * 6;
     swPF.frequency.setTargetAtTime(2400 + k * 5000, t, .1);
   }
+  // smooth exponential attack/decay from wherever the envelope is: no step, no click (the delay used to echo the clicks)
   function blip(t, peak, d) {
-    env.gain.setValueAtTime(.04, t);
-    env.gain.linearRampToValueAtTime(peak, t + .005);
-    env.gain.setTargetAtTime(.06, t + .01, d * .45);
+    env.gain.setTargetAtTime(peak, t, .004);
+    env.gain.setTargetAtTime(.05, t + .02, d * .45);
   }
   function fmVoice(t, f, ratio, index, dur, vol, idxDur, type = 'sine', hp = 0) {
     const car = ac.createOscillator(), mod = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
@@ -760,8 +762,8 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     if (s % 2 === 0) { // the 8th-note octave bass that every synthwave track runs on
       const dw = boss && boss.duty !== undefined ? clamp(boss.duty, .03, .97) : .5;
       pwmSet(pwmBass, hz(c.r) * (s % 4 === 2 ? 2 : 1), t, dw, .04);
-      pbG.gain.cancelScheduledValues(t); pbG.gain.setValueAtTime(0, t);
-      pbG.gain.linearRampToValueAtTime(.16, t + .006); pbG.gain.setTargetAtTime(.03, t + .02, .07);
+      pbG.gain.cancelScheduledValues(t);
+      pbG.gain.setTargetAtTime(.16, t, .004); pbG.gain.setTargetAtTime(.03, t + .02, .07);
     }
     if (s % 4 === 0) { const dw = boss && boss.duty !== undefined ? clamp(boss.duty, .03, .97) : .5; c.t.slice(0, 3).forEach((sm, i) => pwmSet(pwmPad[i], hz(sm), t, dw, .05)); padG.gain.setTargetAtTime(.045, t, .3); }
     swOn = true;
@@ -836,8 +838,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     if (!dub && !wave80 && !band && !chip && (dance ? n % 4 === 2 : (n % 16 === 0 || (bossMusic && n % 4 === 0)))) { // dance: off-beat trance bass
       bass.frequency.setValueAtTime(hz(c.r), t);
       bassEnv.gain.cancelScheduledValues(t);
-      bassEnv.gain.setValueAtTime(0, t);
-      bassEnv.gain.linearRampToValueAtTime(dance ? .2 : bossMusic ? .16 : .2, t + .012);
+      bassEnv.gain.setTargetAtTime(dance ? .2 : bossMusic ? .16 : .2, t, .006);
       bassEnv.gain.setTargetAtTime(bossMusic ? .02 : .09, t + .04, dance ? .06 : bossMusic ? .08 : .5);
     }
   }
@@ -1041,7 +1042,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   let power = null, banner = null, toast = null, shake = 0, pillCount = 0;
   let platforms = [], standing = null, fmIndex = 0, idxTokens = [], invulnT = 0;
   let fx = { rect: 0, ring: 0, ringPh: 0 };
-  let harmTokens = [];
+  let harmTokens = [], shots = [];
   let levelPartials = 0, gateWarned = false, gateOpenSaid = false, bitTokens = [], heroPulse = 0;
   let boss = null, bossPending = false, bossCheckpoint = -1, bossStartPts = 0, bossStartPartials = 0, ally = null, storyQ = null;
   let victory = store.get('osc-adv-victory', '0') === '1';
@@ -1061,7 +1062,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     obstacles = []; pickups = []; pills = []; beams = []; modeCaps = []; nextX = WORLD_W + 70; deathT = 0;
     platforms = []; standing = null; fmIndex = 0; idxTokens = []; invulnT = 0;
     fx = { rect: 0, ring: 0, ringPh: 0 }; setRect(false); setRing(false);
-    levelPartials = 0; gateWarned = false; gateOpenSaid = false; bitTokens = []; setCrushBits(16); setBattleFM(0); harmTokens = []; setDubLayers(8);
+    levelPartials = START_PARTIALS; gateWarned = false; gateOpenSaid = false; bitTokens = []; setCrushBits(16); setBattleFM(0); harmTokens = []; setDubLayers(8);
     levelStart = 0; levelSpawn = 0; marker = null; power = null; toast = null; shake = 0;
     boss = null; bossPending = false; ally = null; victoryRun = false; setBossMusic(false);
     octave = 0; jumpOct = 0; visOct = 0; setWave('sine'); curMode = level;
@@ -1133,7 +1134,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     banner = { t: 0, l1: CAST[B.who].name, l2: B.tip, red: true };
     bitTokens = [];
     if (B.kind === 'crush') setCrushBits(8);
-    if (B.kind === 'harm') { harmTokens = []; setDubLayers(8); }
+    if (B.kind === 'harm') { harmTokens = []; shots = []; boss.shotT = 2; boss.lastShot = 'green'; setDubLayers(8); }
     if (B.kind === 'seq') { const idx = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - .5).slice(0, 5).sort((a, b) => a - b); boss.active = idx; }
   }
   function bossAttack() {
@@ -1152,7 +1153,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     if (boss.hp <= 0) {
       boss.dead = true; boss.deadT = 0; sfxBossDie(); setBossMusic(false); setBattleFM(0);
       for (const o of obstacles) if (o.enemy && !o.broken) { o.broken = true; o.bt = 0; }
-      platforms = platforms.filter(p => p === standing); idxTokens = []; bitTokens = []; harmTokens = []; setCrushBits(16);
+      platforms = platforms.filter(p => p === standing); idxTokens = []; bitTokens = []; harmTokens = []; shots = []; setCrushBits(16);
       if (!reduced) shake = .4;
     }
   }
@@ -1208,14 +1209,22 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   // --- Wavetable: the Complex knocks harmonics out of the table with FM. Strip them strictly from the top
   //     (h9 first, down to h2) and only the fundamental, a pure sine, is left. Out of order, the last one flies back in.
   const harmNext = () => boss.rem.length ? Math.max(...boss.rem) : 0;
+  // The table fires at the Sine, mostly alternating with a little chance: red shots hurt (dodge them),
+  // green ones are its next harmonic (catch it). Lanes: low = jump it, mid = fold under it, high = don't jump into it.
+  const LANES_RED = [{ h: 12, tip: '↑' }, { h: 26, tip: '↓' }, { h: 72, tip: '' }];
+  const LANES_GREEN = [12, 46, 80];
+  function wtShoot() {
+    const b = boss, red = b.lastShot === 'green' ? Math.random() < .8 : Math.random() < .3;
+    b.lastShot = red ? 'red' : 'green';
+    const x = dist + b.x - 30, vx = R(150, 210);
+    if (red) { const ln = pick(LANES_RED); shots.push({ red: true, x, h: ln.h, tip: ln.tip, vx, t: 0 }); sfxFM(3, .18, 0, .07, 2.7); }
+    else { shots.push({ red: false, k: harmNext(), x, h: pick(LANES_GREEN), vx, t: 0 }); tones([24, 31], 'sine', .03, .06, .15); }
+    b.shotT = R(.9, 1.35) - (8 - b.rem.length) * .05; // a bit faster as it loses harmonics
+  }
   function allyHarm() {
     sfxFM(4 + Math.random() * 3, .45, pick([-12, -9, -5]), .13, 1.41);
     beams.push({ t: 0, src: 'ally', n: 1, color: COL.math });
     boss.hitT = .2;
-    const nx = harmNext(), others = boss.rem.filter(k => k !== nx);
-    const ks = [nx, others.length && Math.random() < .75 ? pick(others) : nx]; // usually one right, one decoy
-    if (harmTokens.some(k => k.k === nx) && others.length) ks[0] = pick(others); // don't flood the field with the same one
-    for (const k of ks) harmTokens.push({ k, x: dist + boss.x - 10, h: -(boss.B.y ?? -128), vx: R(-140, -40), vh: R(40, 170), th: pick([12, 12, 34, 60, 84]), t: 0 });
   }
   function catchHarm(tok) {
     const b = boss; if (!b || b.dead) return;
@@ -1247,6 +1256,19 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   // the lower sideband: wanders ahead of the hero and mirrors the hero's height
   const ghostX = () => HERO_X + 22 + 92 * (.5 + .5 * Math.sin(fx.ringPh));
   const ghostH = () => clamp(96 - y, 0, 150);
+  // Sonic-style lives: every level starts with 4 partials; a hit costs 4 (they scatter and can be grabbed back).
+  // With none left, a hit is the end of the run.
+  const START_PARTIALS = 4, HIT_COST = 4;
+  function takeHit(label) {
+    if (god || invulnT > 0 || state !== 'play') return;
+    if (levelPartials <= 0) { die({ label }); return; }
+    const lost = Math.min(HIT_COST, levelPartials);
+    levelPartials -= lost; invulnT = 1.6;
+    for (let i = 0; i < lost; i++) pickups.push({ x: dist + HERO_X + 70 + i * 30 + R(-6, 6), h: R(18, 78), got: false, t: 0, seed: R(0, 6), lost: true, age: 0 });
+    tones([12, 7, 3, 0], 'square', .05, .07, .14); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
+    toast = { t: 0, text: levelPartials ? `−${lost} партиала · осталось ${levelPartials}` : `−${lost} партиала · следующее попадание — конец`, color: COL.red };
+    if (!reduced) shake = .25;
+  }
   function loseIndex() {
     const n = fmIndex; fmIndex = 0; invulnT = 1.4;
     for (let i = 0; i < Math.min(n, 6); i++) idxTokens.push({ x: dist + HERO_X + HERO_W / 2, h: y + 12, vx: R(240, 430), vh: R(90, 220), th: pick([12, 34, 60]), t: 0, lost: true });
@@ -1457,7 +1479,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     pts += 100;
     level = Math.min(level + 1, LEVELS.length - 1);
     if (level > unlocked) { unlocked = level; store.set('osc-adv-unlocked', unlocked); }
-    levelStart = dist; marker = null; levelSpawn = 0; levelPartials = 0; gateWarned = false; gateOpenSaid = false;
+    levelStart = dist; marker = null; levelSpawn = 0; levelPartials = START_PARTIALS; gateWarned = false; gateOpenSaid = false;
     levelStartPts = pts; levelStartPartials = partials;
     speed = LEVELS[level].speed0; curMode = level;
     nextX = dist + WORLD_W + 60;
@@ -1577,7 +1599,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       ovEl.style.setProperty('--chip', COL.ch3);
       chip.textContent = 'NO SIGNAL';
       h.textContent = 'Сигнал потерян';
-      p.innerHTML = `Тебя срезала функция <code>${killer}</code>.<br>Счёт <strong>${info.s}</strong>${info.rec ? ', это новый рекорд' : `, рекорд ${best}`}.`;
+      p.innerHTML = `Последний удар: <code>${killer}</code>.<br>Счёт <strong>${info.s}</strong>${info.rec ? ', это новый рекорд' : `, рекорд ${best}`}.`;
       b.textContent = lastEndless ? 'Ещё раз · свобода ▶' : bossCheckpoint === level ? 'Ещё раз · к боссу ▶' : `Ещё раз · уровень ${level + 1} ▶`;
       b2.hidden = level === 0 && bossCheckpoint !== 0; b2.textContent = 'С первого уровня';
       renderLevelChips(false);
@@ -1641,7 +1663,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
   function hud() {
     const s = String(Math.floor(pts)).padStart(4, '0'), p = String(partials).padStart(2, '0'), l = `${level + 1}/${LEVELS.length}`;
     const key = s + p + l + best + levelPartials + (boss ? 1 : 0) + state; if (key === lastHud) return; lastHud = key;
-    mGate.textContent = !victoryRun && !boss && LEVELS[level].boss && state === 'play' ? `◎ ${Math.min(levelPartials, NEED[level])}/${NEED[level]}` : '';
+    mGate.textContent = state !== 'play' ? '' : !victoryRun && !boss && LEVELS[level].boss ? `◎ ${Math.min(levelPartials, NEED[level])}/${NEED[level]}` : `◎ ${levelPartials}`;
     mScore.textContent = s; roScore.textContent = s; roBest.textContent = String(best).padStart(4, '0'); roPart.textContent = p; roLvl.textContent = l;
   }
 
@@ -1803,13 +1825,23 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         if (!k.got && k.t > .1 && hitBox(k.x - dist, k.h, 9)) { k.got = true; catchHarm(k); }
       }
       harmTokens = harmTokens.filter(k => !k.got && k.x - dist > -30 && k.t < 12);
+      for (const sh of shots) {
+        sh.t += dt; sh.x -= sh.vx * dt;
+        if (sh.done) continue;
+        if (hitBox(sh.x - dist, sh.h, sh.red ? 6 : 9)) {
+          sh.done = true;
+          if (sh.red) takeHit('выстрел Wavetable'); else if (boss && !boss.dead) { sh.k = harmNext(); catchHarm(sh); }
+        }
+      }
+      shots = shots.filter(sh => !sh.done && sh.x - dist > -30);
       obstacles = obstacles.filter(o => o.x + o.w - dist > -60 && !(o.broken && o.bt > .45));
       for (const p of pickups) {
+        if (p.lost) p.age += dt;
         if (p.got) { p.t += dt; continue; }
         if (hitBox(p.x - dist, p.h, 7)) {
           p.got = true; partials++; pts += 10; sfxPing();
+          levelPartials++;
           if (!boss && !victoryRun) {
-            levelPartials++;
             const L = LEVELS[level];
             if (L.boss && levelPartials === NEED[level] && !gateOpenSaid) { gateOpenSaid = true; tones([24, 28, 31, 36], 'sine', .05, .1, .3); buzz([20, 30, 20]); }
             if (L.boss && levelPartials >= NEED[level] && gateWarned && !bossPending) bossPending = true; // overtime ends as soon as the gate opens
@@ -1817,7 +1849,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
           if (boss && boss.B.partialDmg && !boss.dead && boss.t > 1.4) hitBoss(power && power.type === 'cpx' ? 2 : 1, 'hero');
         }
       }
-      pickups = pickups.filter(p => p.x - dist > -30 && !(p.got && p.t > .35));
+      pickups = pickups.filter(p => p.x - dist > -30 && !(p.got && p.t > .35) && !(p.lost && p.age > 2.8));
       for (const p of pills) {
         if (p.got) continue;
         if (hitBox(p.x - dist, p.h + Math.sin(phase * .5 + p.seed) * 3, 10)) { p.got = true; givePower(p.type); }
@@ -1840,12 +1872,12 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         }
         if (fx.ring > 0 && !god && invulnT <= 0 && !(power && power.type === 'mdr')) {
           const gx = ghostX(), gh = ghostH(), amp = heroAmp();
-          if (HERO_X + HERO_W - 6 > gx + 6 && HERO_X + 6 < gx + HERO_W - 6 && y + 2 * amp - 3 > gh + 3 && y + 3 < gh + 27) die({ label: 'второй сайдбенд' });
+          if (HERO_X + HERO_W - 6 > gx + 6 && HERO_X + 6 < gx + HERO_W - 6 && y + 2 * amp - 3 > gh + 3 && y + 3 < gh + 27) takeHit('второй сайдбенд');
         }
         if (state === 'play' && hit && !god && invulnT <= 0) {
           if (power && (power.type === 'mdr' || (power.type === 'cpx' && !hit.ground))) breakOb(hit);
           else if (boss && boss.B.kind === 'fm' && !boss.dead && fmIndex > 0) loseIndex();
-          else die(hit);
+          else takeHit(hit.label);
         }
       }
     } else if (state === 'dying') {
@@ -1873,6 +1905,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     if (boss.B.kind === 'scales') updateScales(dt);
     if (boss.B.kind === 'crush') updateCrush(dt);
     if (boss.B.kind === 'seq') updateSeq(dt);
+    if (boss.B.kind === 'harm') { boss.shotT -= dt; if (boss.shotT <= 0) wtShoot(); }
     if (boss.B.kind === 'fm') updateFM(dt);
     if (boss.B.partialDmg) {
       boss.harmT -= dt;
@@ -2237,6 +2270,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
         ctx.beginPath(); ctx.arc(px, py, 6 + k * 26, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
         continue;
       }
+      if (p.lost && p.age > 1.6 && Math.floor(p.age * 12) % 2) continue; // about to vanish
       const q = [], r = 7, ph = tnow * 2.2 + p.seed;
       for (let i = 0; i <= 64; i++) { const t = i / 64 * Math.PI * 2; q.push(px + r * Math.sin(3 * t + ph), py + r * Math.sin(2 * t)); }
       trace(q, COL.ch4, 1.4);
@@ -2300,6 +2334,17 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
       const c = k.val ? COL.ch4 : COL.red, q = [px - 7, py - 8, px + 7, py - 8, px + 7, py + 8, px - 7, py + 8, px - 7, py - 8];
       fillPoly(q, c, .15); trace(q, c, 1.3);
       text(k.val ? '1' : '0', px, py, c, 'center', fontPx() + 2, 700);
+    }
+    // Wavetable shots: red orbs to dodge (with a lane hint), green harmonics to catch
+    for (const sh of shots) {
+      const px = sh.x - dist, py = GROUND - sh.h;
+      if (px < -20 || px > WORLD_W + 20) continue;
+      const c = sh.red ? COL.red : COL.ch4, r = sh.red ? 7 : 10, q = [];
+      for (let i = 0; i <= 30; i++) { const a = i / 30 * Math.PI * 2; q.push(px + Math.cos(a) * r, py + Math.sin(a) * r); }
+      fillPoly(q, c, sh.red ? .35 : .2); trace(q, c, 1.6);
+      trace([px + r, py, px + r + 16, py], c, 1, .4); // motion streak
+      if (sh.red) { if (sh.tip) text(sh.tip, px, py - 15, COL.red, 'center', fontPx() + 2, 700); }
+      else text(`h${harmNext()}`, px, py, c, 'center', fontPx(), 700);
     }
     // harmonic tokens (Wavetable): the next one to strip glows
     if (boss && boss.B.kind === 'harm') {
@@ -2407,6 +2452,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     const oc = state === 'play' ? octave : 0;
     textScreen(oc ? `${oc > 0 ? '+' : '−'}${Math.abs(oc)} st` : '±0 st', cw - pad, pad + fp / 2, oc > 0 ? COL.ch1 : oc < 0 ? COL.ch3 : COL.dim, 'right');
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2, COL.ch4, 'center', fp, 600);
+    if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
       textScreen(`ШАГИ ${boss.captured.length}/${boss.active.length} · прыгай, когда метка на красном`, cw / 2, pad + fp * 2.4, COL.red, 'center', fp, 700);
     if (boss && boss.B.kind === 'scales' && !boss.dead && !storyQ) {
@@ -2422,7 +2468,7 @@ body.playing .mbar{display:flex;position:absolute;z-index:3;top:calc(env(safe-ar
     }
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
       const nx = harmNext(), yy = pad + fp * 2.4;
-      textScreen(`снимай сверху вниз · следующая h${nx}`, cw / 2, yy, COL.ch4, 'center', fp, 700);
+      textScreen(`лови зелёные · уклоняйся от красных · следующая h${nx}`, cw / 2, yy, COL.ch4, 'center', fp, 700);
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.font = `700 ${fp}px "IBM Plex Mono", ui-monospace, monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const cellW = Math.min(30, cw / 13), x0 = cw / 2 - cellW * 4.5;
