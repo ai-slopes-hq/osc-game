@@ -2465,26 +2465,105 @@ body.desk .mbtns button:hover{opacity:1}
     }
     for (let i = 0; i < q.length; i += 2) i ? ctx.lineTo(q[i], q[i + 1]) : ctx.moveTo(q[i], q[i + 1]);
   }
-  function drawScenery() {
-    ctx.save(); ctx.lineWidth = lw(1); ctx.lineJoin = 'round';
-    // far ridge
-    const far = dist * .08;
-    ctx.strokeStyle = 'rgba(222,218,209,.07)'; ctx.beginPath();
-    for (let x = -4; x <= WORLD_W + 4; x += 6) {
-      const u = x + far, yy = GROUND - 26 - 13 * Math.sin(u * .017) - 8 * Math.sin(u * .041 + 2) - 4 * Math.sin(u * .09 + 1);
-      x < 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
-    }
+  // Each level has its own distant scenery, all of it maths drawn as faint traces in slow parallax:
+  // L1 function trees, L2 graph networks over a quantised ridge, L3 drifting Lissajous figures,
+  // L4 fractal trees under a Koch ridge, L5 a wavetable seen in 3D. Free play cycles them with the mode.
+  const SCENES = ['trees', 'graph', 'liss', 'fractal', 'wt'];
+  const sceneStroke = a => { ctx.strokeStyle = `rgba(222,218,209,${a})`; };
+  function eachSlot(p, sp, fn) { // deterministic slots along a parallax layer
+    const off = dist * p, k0 = Math.floor((off - 80) / sp), k1 = Math.ceil((off + WORLD_W + 80) / sp);
+    for (let k = k0; k <= k1; k++) fn(k * sp + hash(k * 3.1 + p) * sp * .6 - off, k);
+  }
+  function ridge(fn, a = .07) { // a far horizon line y = fn(u), u in parallax space
+    const far = dist * .08; sceneStroke(a); ctx.beginPath();
+    for (let x = -4; x <= WORLD_W + 4; x += 4) { const yy = fn(x + far); x < 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy); }
     ctx.stroke();
-    // two grove layers: far small trees, nearer bigger ones
-    for (const [p, sp, a, s0] of [[.18, 95, .07, 34], [.36, 150, .11, 58]]) {
-      const off = dist * p, k0 = Math.floor((off - 60) / sp), k1 = Math.ceil((off + WORLD_W + 60) / sp);
-      ctx.strokeStyle = `rgba(222,218,209,${a})`; ctx.beginPath();
+  }
+  const sinRidge = u => GROUND - 26 - 13 * Math.sin(u * .017) - 8 * Math.sin(u * .041 + 2) - 4 * Math.sin(u * .09 + 1);
+  function fracBranch(x, y, len, ang, depth, seed) {
+    const x2 = x + Math.cos(ang) * len, y2 = y - Math.sin(ang) * len;
+    ctx.moveTo(x, y); ctx.lineTo(x2, y2);
+    if (depth <= 0) return;
+    const spread = .38 + seed * .25;
+    fracBranch(x2, y2, len * .72, ang + spread, depth - 1, seed);
+    fracBranch(x2, y2, len * .68, ang - spread * .9, depth - 1, seed);
+  }
+  function koch(x0, y0, x1, y1, depth) {
+    if (depth === 0) { ctx.lineTo(x1, y1); return; }
+    const dx = (x1 - x0) / 3, dy = (y1 - y0) / 3, ax = x0 + dx, ay = y0 + dy, bx = x0 + 2 * dx, by = y0 + 2 * dy;
+    const px = ax + dx * .5 + dy * .866, py = ay + dy * .5 - dx * .866; // the bump points up
+    koch(x0, y0, ax, ay, depth - 1); koch(ax, ay, px, py, depth - 1); koch(px, py, bx, by, depth - 1); koch(bx, by, x1, y1, depth - 1);
+  }
+  function drawScenery() {
+    const style = SCENES[victoryRun ? curMode % SCENES.length : level] || 'trees', tnow = performance.now() / 1000;
+    ctx.save(); ctx.lineWidth = lw(1); ctx.lineJoin = 'round';
+    if (style === 'trees') {
+      ridge(sinRidge);
+      for (const [p, sp, a, s0] of [[.18, 95, .07, 34], [.36, 150, .11, 58]]) {
+        sceneStroke(a); ctx.beginPath();
+        eachSlot(p, sp, (x, k) => {
+          if (hash(k + p * 100) < .3) return;
+          drawTree(x, GROUND, s0 * (.7 + hash(k * 7.3 + p) * .6), Math.floor(hash(k * 1.7 + p * 9) * 4), hash(k * 5.9));
+        });
+        ctx.stroke();
+      }
+    } else if (style === 'graph') {
+      ridge(u => GROUND - 18 - 7 * Math.floor((14 * Math.sin(u * .015) + 8 * Math.sin(u * .043 + 1) + 22) / 7)); // quantised hills: a staircase
+      const p = .24, sp = 64, off = dist * p;
+      const node = k => [k * sp + hash(k * 3.1) * sp * .7 - off, GROUND - 55 - hash(k * 9.7) * 120];
+      const k0 = Math.floor((off - 80) / sp), k1 = Math.ceil((off + WORLD_W + 80) / sp);
+      sceneStroke(.09); ctx.beginPath();
       for (let k = k0; k <= k1; k++) {
-        if (hash(k + p * 100) < .3) continue;                                 // gaps in the grove
-        const x = k * sp + hash(k * 3.1 + p) * sp * .6 - off, sz = s0 * (.7 + hash(k * 7.3 + p) * .6);
-        drawTree(x, GROUND, sz, Math.floor(hash(k * 1.7 + p * 9) * 4), hash(k * 5.9));
+        const [x, y] = node(k), [x2, y2] = node(k + 1);
+        ctx.moveTo(x, y); ctx.lineTo(x2, y2);
+        if (hash(k * 1.3) < .55) { const [x3, y3] = node(k + 2); ctx.moveTo(x, y); ctx.lineTo(x3, y3); }
       }
       ctx.stroke();
+      sceneStroke(.16); ctx.beginPath();
+      for (let k = k0; k <= k1; k++) { const [x, y] = node(k), r = 1.6 + hash(k * 4.4) * 1.8; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); }
+      ctx.stroke();
+    } else if (style === 'liss') {
+      ridge(u => GROUND - 22 - 16 * frac(u / 70)); // a sawtooth skyline
+      const R = [[1, 2], [2, 3], [3, 4], [3, 2], [5, 4], [1, 3]];
+      for (const [p, sp, a, s0] of [[.16, 110, .08, 14], [.3, 160, .12, 26]]) {
+        sceneStroke(a); ctx.beginPath();
+        eachSlot(p, sp, (x, k) => {
+          if (hash(k * 2.2 + p) < .25) return;
+          const [fa, fb] = R[Math.floor(hash(k * 6.1 + p) * R.length)], sz = s0 * (.8 + hash(k * 8.8) * .5);
+          const cy = GROUND - 60 - hash(k * 5.3 + p) * 110, ph = tnow * .35 + k;
+          for (let i = 0; i <= 160; i++) { const th = i / 160 * Math.PI * 2, xx = x + sz * Math.sin(fa * th + ph), yy = cy + sz * Math.sin(fb * th); i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
+        });
+        ctx.stroke();
+      }
+    } else if (style === 'fractal') {
+      sceneStroke(.07); ctx.beginPath();
+      const far = dist * .08, seg = 120, k0 = Math.floor((far - 10) / seg);
+      for (let k = k0; k * seg - far < WORLD_W + seg; k++) { // Koch curve along the horizon
+        const x0 = k * seg - far, y0 = GROUND - 20;
+        if (k === k0) ctx.moveTo(x0, y0);
+        koch(x0, y0, x0 + seg, y0, 3);
+      }
+      ctx.stroke();
+      for (const [p, sp, a, s0, dep] of [[.18, 100, .07, 14, 5], [.34, 150, .11, 22, 6]]) {
+        sceneStroke(a); ctx.beginPath();
+        eachSlot(p, sp, (x, k) => {
+          if (hash(k * 1.9 + p) < .3) return;
+          fracBranch(x, GROUND, s0 * (.8 + hash(k * 3.7) * .5), Math.PI / 2 + (hash(k * 4.1) - .5) * .2, dep, hash(k * 5.5));
+        });
+        ctx.stroke();
+      }
+    } else { // 'wt': a wavetable in 3D — stacked frames morphing from sine to saw, receding up and to the right
+      const N = 11, sh = dist * .05;
+      for (let i = N - 1; i >= 0; i--) {
+        const m = i / (N - 1), dx = i * 9, base = GROUND - 26 - i * 9, amp = 14 - i * .5;
+        sceneStroke(.05 + (1 - m) * .07); ctx.beginPath();
+        for (let x = -4; x <= WORLD_W + 4; x += 4) {
+          const th = (x - dx + sh) * .045, sine = Math.sin(th), saw = 2 * frac(th / (2 * Math.PI) + .5) - 1;
+          const yy = base - amp * lerp(sine, saw, m);
+          x < 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+        }
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
