@@ -1487,7 +1487,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // --- Квадрат: green pulse platforms stream in. Every one you land on collapses under you and pushes his duty cycle
   //     wider; chaining them without touching the ground pushes harder. Standing on the ground lets him settle back
   //     towards a tidy 50%. Push the duty to 100% and the square becomes plain DC — Меандр is free.
-  const SQ_STEP = .06, SQ_CHAIN = .025, SQ_RELAX = .06, SQ_AIR = .022, SQ_FINAL = .75, SQ_WIN = .97;
+  const SQ_STEP = .065, SQ_CHAIN = .025, SQ_RELAX = .05, SQ_AIR = .012, SQ_FINAL = .75, SQ_WIN = .97, SQ_FINAL_CHAIN = 2;
   function updatePwm(dt) {
     const b = boss;
     b.duty = clamp(b.base + .03 * Math.sin(b.t * 3.1), .02, .99); // a living PWM, never quite still
@@ -1507,7 +1507,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     for (const pf of platforms) {
       if (pf.kind !== 'pulse' || pf.fallT < 0) continue;
       pf.fallT += dt;
-      if (pf.fallT < (b.base >= SQ_FINAL ? .5 : .3)) continue; // a short wobble before it gives way (longer in the finale)
+      if (pf.fallT < (b.base >= SQ_FINAL ? .6 : .35)) continue; // a short wobble before it gives way (longer in the finale)
       pf.fallV += 900 * dt; pf.h -= pf.fallV * dt;
       if (pf.h <= 0) { pf.gone = true; if (standing === pf) { standing = null; y = 0; } }
     }
@@ -1515,8 +1515,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (b.pfT <= 0) {
       const h = pick([28, 46, 64].filter(v => v !== b.lastH)), k = clamp((b.base - .5) / (SQ_WIN - .5), 0, 1);
       b.lastH = h;
-      const trap = k > .15 && !b.lastTrap && Math.random() < .28; b.lastTrap = trap; // never two traps in a row
-      platforms.push({ kind: 'pulse', trap, x: dist + WORLD_W + 30, w: lerp(58, 24, k), h, fallT: -1, fallV: 0 }); // pulses narrow as his duty grows
+      const trap = k > .25 && !b.lastTrap && Math.random() < .18; b.lastTrap = trap; // never two traps in a row
+      platforms.push({ kind: 'pulse', trap, x: dist + WORLD_W + 30, w: lerp(60, 36, k), h, fallT: -1, fallV: 0 }); // pulses narrow as his duty grows
       b.pfT = (b.base >= SQ_FINAL ? R(105, 140) : R(150, 205)) / speed; // the finale lays them closer for a chain
     }
   }
@@ -1610,7 +1610,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         return;
       }
       b.chain++;
-      const gain = b.base >= SQ_FINAL ? (SQ_WIN - SQ_FINAL) / 3 + .002 : SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
+      const gain = b.base >= SQ_FINAL ? (SQ_WIN - SQ_FINAL) / SQ_FINAL_CHAIN + .002 : SQ_STEP + (b.chain > 1 ? SQ_CHAIN : 0);
       b.base = Math.min(1, b.base < SQ_FINAL ? Math.min(SQ_FINAL, b.base + gain) : b.base + gain); b.hitT = .2; // below 75% gains stop at 75%
       tones([24, 31].map(x => x + Math.round((b.base - .5) * 14)), 'square', .05, .06, .18);
       toast = { t: 0, text: b.chain > 1 ? `+${Math.round(gain * 100)}% · СЕРИЯ ×${b.chain}` : `+${Math.round(gain * 100)}%`, color: COL.ch4 };
@@ -2991,7 +2991,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1 · не бери 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
-      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.base >= SQ_FINAL ? `финал: серия ×${boss.chain}/3 без земли` : boss.chain > 1 ? `серия ×${boss.chain}` : 'зелёные — да, красные — нет', COL.red, (boss.base - .5) / (SQ_WIN - .5));
+      bossCallout(`ШИМ ${Math.round(boss.base * 100)}%`, boss.base >= SQ_FINAL ? `финал: серия ×${boss.chain}/${SQ_FINAL_CHAIN} без земли` : boss.chain > 1 ? `серия ×${boss.chain}` : 'зелёные — да, красные — нет', COL.red, (boss.base - .5) / (SQ_WIN - .5));
     if (boss && boss.B.kind === 'harm' && !boss.dead && !storyQ) {
       const nx = harmNext(), yy = bossCallout(`СНИМИ h${nx}`, 'зелёные лови · красные мимо', COL.ch4) - fp * .4;
       ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
