@@ -2067,7 +2067,7 @@ body.desk .mbtns button:hover{opacity:1}
           if (gated()) {
             const rem = NEED[level] - levelPartials;
             if (rem > 0) showPop(rem <= 3 ? `ЕЩЁ ${rem}` : `${levelPartials}/${NEED[level]}`, COL.ch4);
-            else if (rem === 0) showPop('БОСС ОТКРЫТ', COL.ch1);
+            else if (rem === 0) showPop(`БОСС: ${CAST[BOSSES[LEVELS[level].boss].who].name.toUpperCase()}`, COL.ch1);
           } else showPop(`◎ ${levelPartials}`, COL.ch4);
           if (!boss && !victoryRun) {
             const L = LEVELS[level];
@@ -2490,7 +2490,7 @@ body.desk .mbtns button:hover{opacity:1}
   }
   // Bottom progress bar: partials towards the boss gate on a level, progress towards the win in a boss fight.
   // It eases to its value and flashes when it grows.
-  let barShown = 0, barLast = 0, barFlash = 0;
+  let barShown = 0, barLast = 0, barFlash = 0, barRed = 0, redT = 0;
   function progressNow() {
     if (boss && !boss.dead) {
       const b = boss, k = b.B.kind;
@@ -2503,15 +2503,21 @@ body.desk .mbtns button:hover{opacity:1}
   }
   function drawProgressBar(dt) {
     const pr = state === 'play' && !storyQ ? progressNow() : null;
-    if (!pr) { barShown = barLast = 0; return; }
+    if (!pr) { barShown = barLast = barRed = redT = 0; return; }
     const [f, col] = pr;
     if (f > barLast + .001) barFlash = 1;
-    barLast = f; barShown += (f - barShown) * (1 - Math.exp(-dt * 9)); barFlash = Math.max(0, barFlash - dt * 2.5);
+    if (f < barLast - .001) { barRed = Math.max(barRed * (redT > 0 ? 1 : 0), barShown); redT = 1; } // a loss: the lost stretch turns red
+    barLast = f; barShown += (f - barShown) * (1 - Math.exp(-dt * (f < barShown ? 4 : 9))); // rolls back a bit slower than it fills
+    barFlash = Math.max(0, barFlash - dt * 2.5); redT = Math.max(0, redT - dt * .9);
     const h = clamp(ch * .012, 5, 10) * (1 + barFlash * .6), y0 = ch - h;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalCompositeOperation = 'destination-out'; ctx.fillRect(0, y0 - 4, cw, h + 4);
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(222,218,209,.08)'; ctx.fillRect(0, y0, cw, h);
+    if (redT > 0 && barRed > barShown) { // the stretch just lost, in red, fading out
+      ctx.globalAlpha = Math.min(1, redT * 1.4); ctx.shadowColor = COL.red; ctx.shadowBlur = 14; ctx.fillStyle = COL.red;
+      ctx.fillRect(cw * barShown, y0 - 2, cw * (barRed - barShown), h + 2); ctx.globalAlpha = 1;
+    }
     ctx.shadowColor = col; ctx.shadowBlur = 10 + barFlash * 14; ctx.fillStyle = col;
     ctx.fillRect(0, y0, cw * barShown, h);
     if (barFlash > 0) { ctx.globalAlpha = barFlash; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.max(0, cw * barShown - 18), y0, 18, h); }
