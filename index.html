@@ -2144,9 +2144,23 @@ body.desk .mbtns button:hover{opacity:1}
   function drawStoryText(tnow) {
     const [who, line] = storyQ.lines[storyQ.i], c = CAST[who];
     const pad = 14, fp = fontPx(), top = pad + fp * 2.6;
-    const bodyPx = clamp(cw / 52, 13, 17), maxW = Math.min(cw * .64, 560);
+    const bodyPx = clamp(cw / 52, 13, 17), maxW = Math.min(cw * (cw / ch > 1.4 ? .48 : .64), 560); // wide screens: keep clear of the speakers on the right
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 8;
+    // A dark plate behind the dialogue, wiped clean every frame: the phosphor trails of the scene
+    // (and of the text itself) never build up under the letters, so they stay sharp.
+    ctx.font = `${c.nar ? 'italic ' : ''}400 ${bodyPx}px "IBM Plex Sans", system-ui, sans-serif`;
+    const wl = wrapLines(line, maxW), textW = Math.max(...wl.map(l => ctx.measureText(l).width), 160);
+    const plateW = Math.min(cw, textW + pad * 2 + 8), plateH = top + fp * 1.9 + wl.length * bodyPx * 1.42 + fp * 1.6 + 8;
+    const plate = (x, y, w, h) => { // hard-cleared inside, soft dark edge around it
+      ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h);
+      ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(3,5,8,.88)';
+      ctx.shadowColor = 'rgba(3,5,8,.88)'; ctx.shadowBlur = 18; ctx.fillRect(x, y, w, h); ctx.shadowBlur = 0;
+    };
+    plate(0, 0, plateW, plateH);
+    ctx.font = `500 ${fp - 1}px "IBM Plex Mono", ui-monospace, monospace`;
+    const skW = ctx.measureText('пропустить ⏭').width + pad * 2;
+    if (cw - skW > plateW) plate(cw - skW, top - fp, skW, fp * 3);
+    ctx.font = `${c.nar ? 'italic ' : ''}400 ${bodyPx}px "IBM Plex Sans", system-ui, sans-serif`;
     ctx.textBaseline = 'top'; ctx.textAlign = 'left';
     if (!c.nar) {
       ctx.font = `600 ${fp + 1}px "IBM Plex Mono", ui-monospace, monospace`;
