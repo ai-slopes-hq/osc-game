@@ -144,19 +144,48 @@ The first ground function, hanging function and tall wall slow the run to a free
 where the move works; a card says what to press; the press performs the move. `bestTakeoff` simulates the jump over
 the obstacle profile to find that point. Done steps are stored in `osc-adv-tut`.
 
+### Levels
+Nine levels (`LEVELS`), each with its own mode, genre (`band`), background (`scene`) and obstacle pool. Big-boss levels
+alternate with genre levels that end in a mini-boss; **Wavetable is always the last level and the final boss.**
+
+| # | Mode | Genre (`band`) | Scene | Signature obstacles | Boss |
+|---|---|---|---|---|---|
+| 1 | A Aeolian | pop (synth-pop) | `trees` | plain functions, noise floor | Square |
+| 2 | C Harmonic minor | techno | `tunnel` | gate compressor, feedback | *Compressor* |
+| 3 | D Dorian | chip | `graph` | FFT, comb, redux, S&H, rectify | Bitcrusher |
+| 4 | G Mixolydian | reggae (one drop, dub echo) | `phyllo` | echo delay, resonant peak | *Limiter* |
+| 5 | E Phrygian | trance | `liss` | AM, S&H ceilings, ring mod, phase invert | Supersaw |
+| 6 | G Dorian | breaks (electro-breaks) | `spiro` | DC offset snake, S&H | *Arpeggiator* |
+| 7 | F Lydian | glitch | `fractal` | all the digital gates mixed | Sequencer |
+| 8 | C Ionian | ambient (no drums, a breather) | `aurora` | sparse, resonant peaks, phase invert | *Vocoder* |
+| 9 | F# Aeolian | modern (progressive house) | `wt` | everything (`ALL_G`/`ALL_C`) | Wavetable |
+
+Free play runs on level 9; mode capsules switch mode, genre and scene together (`MODES[i].band/.scene`, `bandNow()`).
+Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level doesn't break the curve.
+
 ### Bosses
-`BOSSES[key]`: `who`, `hp`, `kind`, `y`, `tip`, `noAtk`, `ally`, `intro`, `outro`.
+`BOSSES[key]`: `who`, `hp`, `kind`, `y`, `tip`, `noAtk`, `ally`, `intro`, `outro`, `mini`.
 
 | Level | Boss | `kind` | Mechanic | Music |
 |---|---|---|---|---|
 | 1 | Square (captured Meander) | `pwm` | Green pulse platforms; land → it collapses, duty `base` +6.5% (+2.5% in a chain); red inverted pulses are traps (−10%); he always pulls back to 50%; from 75% (`SQ_FINAL`) only an unbroken chain of `SQ_FINAL_CHAIN` counts; 97% wins | `synthwave`, pulse width = `duty` |
-| 2 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
-| 3 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
-| 4 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm), bar REPEAT (tap it back — every tap counts, even mid-air), verdict bar. Wrong → he plays it again, nothing lost. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
-| 5 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
+| 3 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
+| 5 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
+| 7 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm), bar REPEAT (tap it back — every tap counts, even mid-air), verdict bar. Wrong → he plays it again, nothing lost. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
+| 9 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
+
+
+Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the level's band keeps playing under them):
+
+| Level | Mini-boss | Mechanic |
+|---|---|---|
+| 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6) |
+| 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles |
+| 6 | Arpeggiator `arp` | Staircases of note platforms UP / DOWN / UP·DOWN (`ARP_MODES`): land on every step in order without touching the ground; a slip replays it |
+| 8 | Vocoder `voc` | He asks for a vowel (`VOWELS`, formant synth `vowelSfx`); catch that one, a wrong one gives him a level back |
 
 **To add a boss:** an entry in `BOSSES`, `boss:` on a level, init in `spawnBoss`, an `update*` branch in `updateBoss`,
-a branch in `drawBoss`, a `bossCallout` in `render`, a `progressNow` case, a `#testSel` option, lines in `CAST`.
+a branch in `drawBoss`, a `bossCallout` in `render`, a `progressNow` case, lines in `CAST` (the test picker is built from `LEVELS`).
 
 ### HUD and feedback
 One big short line per fight (`bossCallout(main, sub, colour, frac)`). Events are big and animated: `showPop(text,
@@ -181,18 +210,22 @@ animates it with long events (run start fade-in, gate/boss sweeps, muffled dialo
 - **The Sine's part:** short genre motifs built only from the current chord's tones (`MOTIFS[style]`, `chordTone`) —
   always in harmony, repeating A/B bars. Its voice per genre (`SYN[style]` → `melNote`): amp ADSR, gate
   (staccato/legato), an FM-index burst for harmonics, a closing low-pass envelope.
-- **Level band** (`levelBand`, style from `BAND[level]`): pads (`padNote`), bass/plucks with filter envelopes
-  (`bandVoice`), drums (`kick`/`hat`/`clap`) on `padBus`, pumped by `duck()`. L1 synth-pop · L2 chiptune hint ·
-  L3 trance · L4 glitch · L5 (F# minor) and free play: progressive house. Dialogue drops the band to a pad breakdown.
+- **Level band** (`levelBand`, style from `bandNow()` = `LEVELS[level].band`): pads (`padNote`), bass/plucks with
+  filter envelopes (`bandVoice`), drums (`kick`/`hat`/`clap`) on `padBus`, pumped by `duck()`. Genres: `pop`, `techno`
+  (rumble + acid line), `chip`, `reggae` (one drop, skanks and rims into the dub echo `dubIn`), `trance`, `breaks`
+  (broken beat, electro bass, zaps), `glitch`, `ambient` (no drums, swelling pads, bell glints into the echo), `modern`.
+  Each genre also has `MOTIFS`, `SYN` and `STYLE_WET` entries. Dialogue drops the band to a pad breakdown.
 - **Boss tracks:** `synthwave` (PWM via `makePWM`), `chiptune` (`chipBus → chipSh`), FM `drums`, `dubstep`.
 
 ### Scenery
-`drawScenery`, style per level (`SCENES`): L1 function trees (rose, bell, |x| fir, sinc willow), L2 graph networks
-over a quantised ridge, L3 drifting Lissajous figures, L4 fractal trees under a Koch ridge, L5 a 3D wavetable.
+`drawScenery`, style per level (`LEVELS[i].scene`): `trees` function trees (rose, bell, |x| fir, sinc willow), `tunnel` a
+techno tunnel pulsing on the beat, `graph` graph networks over a quantised ridge, `phyllo` golden-angle sunflowers,
+`liss` drifting Lissajous figures, `spiro` turning spirographs, `fractal` fractal trees under a Koch ridge, `aurora`
+summed-sine curtains and stars, `wt` a 3D wavetable.
 Hidden in boss fights.
 
 ### Storage (`localStorage` via `store`)
-`osc-adv-best` (record), `osc-adv-unlocked`, `osc-adv-victory`, `osc-adv-muted`, `osc-adv-god`, `osc-adv-tut`.
+`osc-adv-best` (record), `osc-adv-unlocked9` (the old five-level `osc-adv-unlocked` maps i → 2i), `osc-adv-victory`, `osc-adv-muted`, `osc-adv-god`, `osc-adv-tut`.
 
 ### Analytics, headers, security
 Vercel Web Analytics (`/_vercel/insights/script.js`) and Speed Insights (`/_vercel/speed-insights/script.js`) are
@@ -206,7 +239,7 @@ to the CSP**, or browsers will block it.
 
 `tools/smoke.py` shows the pattern: it injects `window.T = { ev: (c) => eval(c) }` before `  showTitle();` so a test
 can run code inside the game's closure: `T.ev("testJump('b3')")`, `T.ev('storySkip()')`, `T.ev('god = true')`.
-Useful entry points: `testJump('op'|'l0'..'l4'|'b0'..'b4'|'free')`, `catchBit({val:1})`, `catchHarm({k:9})`,
+Useful entry points: `testJump('op'|'l0'..'l8'|'b0'..'b8'|'free')`, `catchBit({val:1})`, `catchHarm({k:9})`,
 `landOn(pf)`, `takeHit('x')`, `seqRound(boss, 1)`.
 
 **Balance by bot:** a `setInterval` that only looks at what a player sees and calls `pressJump()`. Compare a precise
@@ -228,5 +261,4 @@ Phones: Playwright context with `has_touch`, `is_mobile`, 390×844 and 844×390.
 - Legacy, unused: `updateFM`, `allyFM`, `fireFM`, `loseIndex`, `fmLit`, `setBattleFM`, `idxTokens`, platforms `kind:'fm'`,
   `harmTokens`, empty `flash()`, `BOSSES.*.atk` on bosses with `noAtk`. Safe to remove with care.
 - The page copy in `<footer>` / `.deck` is hidden on every device now; it's kept as accessible text and for `#test`.
-- Planned: mini-bosses (Compressor, Arpeggiator, Limiter, Vocoder) between levels; Wavetable stays the final boss.
 - Ideas: a mid-level checkpoint; a "stun" instead of a hit for the ring-mod sideband; a final scene after Wavetable.
