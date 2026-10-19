@@ -540,8 +540,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
 
   const $ = id => document.getElementById(id);
   const screenEl = $('screen'), gridCv = $('grid'), cv = $('game');
-  const g = gridCv.getContext('2d'), ctx = cv.getContext('2d'), cvCtx = ctx;
+  const g = gridCv.getContext('2d'), cvCtx = cv.getContext('2d');
+  let ctx = cvCtx;
   const fxCv = $('fx'), fctx = fxCv.getContext('2d'), tmpCv = document.createElement('canvas'), tctx = tmpCv.getContext('2d');
+  // While the screen is pixelated (Bitcrusher's level and fight) all text and the HUD go on a crisp layer above the
+  // pixels: textScreen/crispText always write there, and render() points ctx at it once the world is drawn.
+  const txCv = document.createElement('canvas'), txCtx = txCv.getContext('2d'); let pixOn = false;
+  txCv.setAttribute('aria-hidden', 'true'); txCv.hidden = true; fxCv.after(txCv);
   let lowQ = false;
   let cw = 0, ch = 0, dpr = 1, scale = 1, viewH = BASE_H, offY = 0;
 
@@ -561,7 +566,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     dpr = lowQ ? 1 : Math.min(window.devicePixelRatio || 1, 2);
     cw = r.width; ch = r.height; scale = cw / WORLD_W;
     viewH = ch / scale; offY = viewH - BASE_H;
-    for (const c of [gridCv, cv, fxCv]) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
+    for (const c of [gridCv, cv, fxCv, txCv]) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
     drawGrid();
   }
   function drawGrid() {
@@ -2616,6 +2621,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   const MOB = matchMedia('(pointer: coarse)').matches; // phones/tablets: bigger type, fewer words
   const fontPx = () => MOB ? clamp(cw / 26, 14, 20) : clamp(cw / 52, 11, 17);
   function textScreen(s, sx, sy, color, align = 'center', px = fontPx(), weight = 500, family = '"IBM Plex Mono", ui-monospace, Menlo, monospace', alpha = 1) {
+    const ctx = pixOn ? txCtx : cvCtx;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = alpha;
     ctx.font = `${weight} ${px}px ${family}`;
     ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'middle';
@@ -2623,6 +2629,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   // Text that changes (callouts, toasts): wipe the phosphor under its box first, so old words don't ghost through
   function crispText(s, sx, sy, color, align = 'center', px = fontPx(), weight = 500, family = '"IBM Plex Mono", ui-monospace, Menlo, monospace', alpha = 1) {
+    const ctx = pixOn ? txCtx : cvCtx;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.font = `${weight} ${px}px ${family}`;
     const w = ctx.measureText(s).width + px, x0 = align === 'center' ? sx - w / 2 : align === 'right' ? sx - w + px / 2 : sx - px / 2;
@@ -2650,10 +2657,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     const b = boss, by = GROUND + (b.B.y ?? -128) + Math.sin(b.t * 1.6) * 8, bw = 104;
     const amp = 36 * (b.key === 'wt' && dubRate && !b.dead ? .72 + .28 * Math.sin(2 * Math.PI * dubRate * tnow) : 1);
     const dieK = b.dead ? Math.min(1, b.deadT / 1.2) : 0;
-    const healed = b.key === 'dsq' ? COL.mdr : b.key === 'ssaw' ? COL.tri : COL.ch1;
+    const healed = b.key === 'dsq' ? COL.mdr : b.key === 'ssaw' ? COL.tri : b.key === 'wt' ? COL.ch1 : 'rgba(255,140,120,.85)'; // digital natives stay themselves, just calmer
     const col = b.hitT > 0 && Math.floor(b.hitT * 30) % 2 === 0 ? '#ffffff' : b.dead ? healed : COL.red;
     const x0 = b.x - bw / 2;
-    const dig = b.dead ? 0 : b.hp / b.max; // 1 = fully digital, 0 = back to analog
+    const dig = b.dead ? (b.B.mini ? .6 : 0) : b.hp / b.max; // 1 = fully digital, 0 = back to analog (minis only soften)
     const wave = (th, extra) => {
       let v;
       if (b.key === 'dsq') v = lerp(waveVal(th, 'mdr'), Math.tanh(10 * (Math.sin(th) - Math.cos(Math.PI * clamp(b.duty, .01, .99)))), dig);
@@ -2668,7 +2675,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const q = [];
       for (let i = 0; i <= 200; i++) {
         const u = i / 200, us = Math.floor(u * samples) / samples, th = us * Math.PI * 2 * 2.2 - b.t * 2;
-        q.push(x0 + u * bw, by - (b.dead ? Math.sin(u * Math.PI * 2 * 2.2 - b.t * 2) : Math.round(Math.sin(th) * lv) / lv) * amp + jit());
+        q.push(x0 + u * bw, by - (b.dead ? Math.round(Math.sin(Math.floor(u * 24) / 24 * Math.PI * 2 * 2.2 - b.t * 2) * 8) / 8 : Math.round(Math.sin(th) * lv) / lv) * amp + jit()); // defeated: 16 bits, finer steps — still digital
       }
       trace(q, col, 2.2, alpha);
     } else if (b.key === 'seq') {
@@ -2887,7 +2894,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     return yy + fp * 1.3;
   }
   // partials needed for the boss: Lissajous icon, big count, a bar
-  function drawPartialGate(yy, tnow, ctx = cvCtx) { // ctx can be the pixelation layer (fctx), to stay crisp over it
+  function drawPartialGate(yy, tnow) {
     const need = NEED[level], have = Math.min(levelPartials, need), done = have >= need, fp = fontPx();
     const big = MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34), col = done ? COL.ch4 : 'rgba(120,236,126,.85)', label = done ? `${have}/${need} · БОСС` : `${have}/${need}`;
     ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3134,6 +3141,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   function render(dt) {
     if (!cw) return;
+    ctx = cvCtx; pixOn = crushPx() > 1; txCv.hidden = !pixOn;
+    if (pixOn) { txCtx.setTransform(1, 0, 0, 1, 0, 0); txCtx.clearRect(0, 0, txCv.width, txCv.height); }
     const W = cv.width, H = cv.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'destination-out';
@@ -3443,6 +3452,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
 
     drawSqueeze(dt);
+    if (pixOn) ctx = txCtx; // from here on: HUD, callouts, pops, dialogue — crisp over the pixels
     // readouts
     const pad = 10, fp = fontPx();
     const wname = { sine: 'SIN', mdr: 'MDR', tri: 'TRI', cpx: 'CPX' }[power ? power.type : 'sine'];
@@ -3486,12 +3496,24 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       for (let i = 0; i < 10; i++) { ctx.fillStyle = i < fmIndex ? COL.math : 'rgba(255,154,60,.18)'; ctx.fillRect(cw / 2 - tw / 2 + i * (pw + gap), yy + fp * .8, pw, 4); }
       ctx.restore();
     }
-    let fxRow = 1.9;
-    if (fx.rect > 0) { textScreen(`RECT ${fx.rect.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
-    if (fx.ring > 0) { textScreen(`RING ${fx.ring.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
-    if (fx.inv > 0) { textScreen(`INVERT ${fx.inv.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
-    if (fx.snh > 0) { textScreen(`S&H ${fx.snh.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
-    if (foldAmt > .05) textScreen(`FOLD ×${drive.toFixed(1)}`, cw - pad, pad + fp * fxRow, COL.ch3, 'right');
+    // every timed effect at once — gates (red), the echo's shadow, the on-beat ×2 — each with its own draining bar
+    const timers = [];
+    if (fx.rect > 0) timers.push(['RECT', fx.rect, 5, COL.fx]);
+    if (fx.ring > 0) timers.push(['RING', fx.ring, 6, COL.fx]);
+    if (fx.inv > 0) timers.push(['INVERT', fx.inv, 6, COL.fx]);
+    if (fx.snh > 0) timers.push(['S&H', fx.snh, 5, COL.fx]);
+    if (shadow) timers.push(['ECHO', 7 - shadow.t, 7, COL.fx]);
+    if (rhythmT > 0) timers.push(['×2', rhythmT, 1.6, COL.ch1]);
+    let fyy = MOB ? Math.max(pad + fp * 1.9, 62) : pad + fp * 1.9; // phones: below the ♪ ❚❚ buttons
+    const tbw = MOB ? 84 : 96;
+    for (const [nm, rem, dur, c] of timers) {
+      crispText(`${nm} ${Math.max(0, rem).toFixed(1)}s`, cw - pad, fyy, c, 'right', fp, 600);
+      ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = 'rgba(222,218,209,.15)'; ctx.fillRect(cw - pad - tbw, fyy + fp * .7, tbw, 3);
+      ctx.fillStyle = c; ctx.fillRect(cw - pad - tbw * clamp(rem / dur, 0, 1), fyy + fp * .7, tbw * clamp(rem / dur, 0, 1), 3); ctx.restore();
+      fyy += fp * 1.75;
+    }
+    if (foldAmt > .05 && !MOB) textScreen(`FOLD ×${drive.toFixed(1)}`, cw - pad, fyy, COL.ch3, 'right');
     if (power) {
       const rem = Math.max(0, power.dur - power.t), c = powerColor(power.type, tnow), bw = Math.min(110, cw * .22);
       textScreen(`${POWERS[power.type].name} ${rem.toFixed(1)}s`, cw / 2, pad + fp / 2, c, 'center');
@@ -3501,6 +3523,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     } else {
       textScreen(`${victoryRun ? '∞' : 'L' + (level + 1)} · ${MODES[curMode].scope}`, cw / 2, pad + fp / 2, victoryRun ? COL_MODE : COL.silk, 'center');
       if (!victoryRun && !boss && !bossPending && LEVELS[level].boss && state !== 'title' && !storyQ) drawPartialGate(pad + fp * 1.4 + (MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34)) * .6, tnow);
+      if (lvlBits < 16 && !boss && state !== 'title' && !storyQ) textScreen(`${lvlBits} БИТ`, cw / 2, pad + fp * 1.4 + (MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34)) * 1.9, COL.red, 'center', fp + 2, 700);
     }
     const len = levelLen();
     const progTxt = boss || bossPending ? ' · BOSS' : isFinite(len) && state !== 'title' ? ` · ${Math.min(99, Math.floor((dist - levelStart) / len * 100))}%` : '';
@@ -3558,15 +3581,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fxCv.width, fxCv.height);
     fctx.imageSmoothingEnabled = false; fctx.drawImage(tmpCv, 0, 0, fxCv.width, fxCv.height);
     if (storyQ) return;
-    if (!boss) { // the level's approach: the gate counter and the bit depth stay crisp over the pixels
-      const fp = fontPx(), pad = 10, big = MOB ? clamp(cw / 14, 24, 38) : clamp(cw / 24, 18, 34), yy = pad + fp * 1.4 + big * .6;
-      fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.fillStyle = 'rgba(4,5,6,.85)'; fctx.fillRect(cw / 2 - Math.min(170, cw * .4), yy - big * .7, Math.min(340, cw * .8), big * 2.4);
-      drawPartialGate(yy, performance.now() / 1000, fctx);
-      fctx.setTransform(dpr, 0, 0, dpr, 0, 0); fctx.font = `700 ${fp + 2}px "IBM Plex Mono", ui-monospace, monospace`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
-      fctx.fillStyle = COL.red; fctx.fillText(`${lvlBits} БИТ`, cw / 2, yy + big * 1.3);
-      return;
-    }
-    if (boss.B.kind !== 'crush') return;
+    if (!boss || boss.B.kind !== 'crush') return;
     const fp = fontPx(), big = MOB ? clamp(cw / 12, 28, 44) : clamp(cw / 20, 20, 38), cell = Math.min(12, cw / 30), gap = 2, tw = 16 * (cell + gap) - gap;
     fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     fctx.font = `700 ${big}px "Unbounded", "Arial Black", sans-serif`; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';

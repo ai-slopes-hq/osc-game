@@ -77,6 +77,8 @@ Sound can't be checked by a script. If you change audio, say so in the PR and as
     access goes through the `store` wrapper (it can throw).
 11. **Phosphor look, crisp text.** The canvas fades by `1 − e^(−70·dt)` per frame (short trails). Text that changes
     is drawn with `crispText()` / `bigText()` (wipes the phosphor under it); dialogue sits on `darkPlate()`.
+    While the screen is pixelated (`pixOn`), `textScreen`/`crispText` write to a text layer `txCv` above the pixels and
+    `render()` points `ctx` at it once the world is drawn — HUD, callouts and dialogue stay sharp.
 12. **Every new thing explains itself the first time** (`ob.hint` / `tagHint`).
 
 ## Map of the script (in file order — line numbers drift, search by name)
@@ -167,7 +169,7 @@ the gate is open; `trackApproach`, `apBand(band)`), so the boss is heard and see
 |---|---|
 | 1 → Square | a square layer under the Sine (`uni` oscillators as squares); the drawn wave squares up (`heroSq`) |
 | 2 → Compressor | the screen is squeezed from the sides, pumping on the kick (`drawSqueeze`, `sqz`, up to 46/120 units); lets go at the fight |
-| 3 → Bitcrusher | bit depth 16 → 8 (`trackBits`, `lvlBits`): the voice crushes, the screen pixelates (`crushPx`; `postFx` keeps the gate counter crisp) |
+| 3 → Bitcrusher | bit depth 16 → 8 (`trackBits`, `lvlBits`): the voice crushes, the world pixelates (`crushPx`, `postFx`) |
 | 4 → Limiter | a 0 dBFS ceiling comes down over the jumps (`limCeil()`, 330 → 150) |
 | 5 → Supersaw | two detuned copies of the melody fade in, ±6 → ±46 ct (`uni`), the hero grows drifting ghosts |
 | 6 → Arpeggiator | the melody's gaps fill with chord arpeggios, 8ths then 16ths (in `playStep`) |
@@ -208,6 +210,10 @@ colour, prio)` (partials "9/15", then "ЕЩЁ 3/2/1", "БОСС: …", "−4 ◎
 A progress bar runs along the bottom (`drawProgressBar`): partials towards the gate on a level, progress to the win in
 a fight; it blinks when the player holds < 4 partials; a loss rolls back with the lost stretch in red.
 A dialogue always starts on a clean screen (`story()` clears pops, toasts, banners).
+Timed effects stack at the top right, each with its own draining bar (`timers` in `render`: RECT, RING, INVERT,
+S&H, ECHO shadow, on-beat ×2); a capsule power keeps its bar at the top centre. Defeated bosses: the captured analog
+ones turn back (Square → Meander, Supersaw → Triangle), Wavetable becomes a sine, the digital ones keep their own
+shape, just calmer.
 
 ### Story
 `story(lines, done, scene)`; a line is `[who, text, action?]`. Letters type out with a key click per two letters
