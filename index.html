@@ -465,32 +465,32 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['lim', 'Ноль дэ-бэ… уже не предел…'],
         ['mdr', 'Слышишь, как стало просторно? Дальше фригийский лад. Там Треугольник.'],
       ] },
-    arp: { who:'arp', hp:4, kind:'arp', mini:true, noAtk:true, morph:'sine', y:-160, tip:'по ступенькам, не касаясь земли',
+    arp: { who:'arp', hp:8, kind:'arp', mini:true, noAtk:true, morph:'sine', y:-160, tip:'он прыгает за тебя · фолд — пропустить',
       intro: [
-        ['arp', 'Аккорд? Скучно. Я разбираю его по нотам: вверх, вниз, вверх-вниз, вразброс.'],
+        ['arp', 'Аккорд? Скучно. Я разбираю его по нотам. И тебя тоже.'],
         ['sine', 'Ноты я и сам умею.'],
-        ['arp', 'Пройди мои лесенки, не касаясь земли. Сорвёшься — сначала.'],
+        ['arp', 'Теперь я прыгаю за тебя — на каждую долю. Хочешь пропустить ноту — держи фолд.'],
       ],
       outro: [
         ['arp', 'Hold… отпущен… все ноты… разом…'],
         ['tri', 'Так это же просто аккорд. Красиво, правда?'],
       ] },
-    voc: { who:'voc', hp:6, kind:'voc', mini:true, noAtk:true, morph:'sine', y:-165, tip:'лови гласную, которую он просит',
+    voc: { who:'voc', hp:7, kind:'voc', mini:true, noAtk:true, morph:'sine', y:-150, tip:'держи фолд — вдох · отпусти — голос',
       intro: [
         ['voc', 'Мне нужен голос. Твой синус — идеальная несущая.'],
         ['sine', 'Голос надо заслужить.'],
-        ['voc', 'Лови гласную, которую прошу. Поймаешь чужую — заберу себе.'],
+        ['voc', 'Вдохни — держи фолд. Выдохни — отпусти. Только я слушаю, пока рот открыт.'],
       ],
       outro: [
         ['voc', 'А… О… У… Я говорю. Сам.'],
         ['cpxr', 'Синус… Я в самом конце развёртки. Он ждёт тебя.'],
         ['sine', 'Иду.'],
       ] },
-    rvb: { who:'rvb', hp:6, kind:'rvb', mini:true, noAtk:true, morph:'sine', y:-150, tip:'пады стреляют · уворачивайся от эха',
+    rvb: { who:'rvb', hp:8, kind:'rvb', mini:true, noAtk:true, morph:'sine', y:-150, tip:'прыжок — хлопок · уворачивайся от эха',
       intro: [
         ['rvb', 'Слышишь? Это ты. И снова ты. И ещё раз — тише.'],
         ['sine', 'Это просто эхо. Оно затухнет.'],
-        ['rvb', 'Когда я захочу. Прыгай на пады — они бросят в меня твоё отражение. Промажешь — оно отскочит от стен в тебя.'],
+        ['rvb', 'Когда я захочу. Каждый твой прыжок — хлопок, и его эхо летит в меня. Промажешь — оно отскочит от стен в тебя.'],
       ],
       outro: [
         ['rvb', 'Затухаю… минус шестьдесят… децибел…'],
@@ -1523,7 +1523,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (B.kind === 'crush') setCrushBits(8);
     if (B.kind === 'harm') { harmTokens = []; shots = []; boss.shotT = 2; boss.lastShot = 'green'; setDubLayers(8); }
     if (B.kind === 'seq') seqRound(boss, 0);
-    if (B.mini) Object.assign(boss, { shots: [], decay: 2, toks: [], tokT: 1.2, thr: 160, round: 0, got: 0, slip: false, want: pick(VOWELS) });
+    if (B.mini) Object.assign(boss, { shots: [], decay: 2, clapT: 0, charge: 0, wasHeld: false, open: false, beamT: 0, lastBeat: -1, keyI: 0, toks: [], tokT: 1.2, thr: 160, round: 0, got: 0, slip: false, want: pick(VOWELS) });
   }
   function bossAttack() {
     const B = boss.B, k = B.atk(boss.hp), wx = dist + boss.x - 20;
@@ -1808,11 +1808,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // Вокодер (ambient): he asks for a vowel; catch that one, a wrong one gives him back a level.
   const VOWELS = ['А', 'О', 'У', 'И', 'Э'];
   const FORMANT = { 'А': [800, 1200], 'О': [500, 900], 'У': [320, 800], 'И': [300, 2300], 'Э': [550, 1800] };
-  const LIM_CEIL = 150, ARP_MODES = [['UP', [20, 44, 68, 92]], ['DOWN', [84, 60, 36, 12]], ['UP·DOWN', [20, 48, 76, 48, 20]], ['RANDOM', [20, 68, 36, 84, 52]]];
-  // The Arpeggiator slows the run to ARP_SPEED and lays each step exactly one jump further than the last: a jump from
-  // the middle of a step lands in the middle of the next (flight time for that rise/drop × speed), with ±half a step to spare.
-  const ARP_SPEED = 250, ARP_W = 84;
-  const jumpAir = dh => (JUMP_V + Math.sqrt(Math.max(0, JUMP_V * JUMP_V - 2 * GRAV * dh))) / GRAV;
+  const LIM_CEIL = 150;
+  const ARP_SPEED = 250; // the Arpeggiator's and the Reverberator's fights run at this pace
   function vowelSfx(v, semi = 0, type = 'sawtooth', vol = .3) {
     if (!ac) return;
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
@@ -1833,6 +1830,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // misses bounces off the walls, the ceiling and the floor, turns red and can hit you, until it decays. His decay time
   // (RT60) drifts: short — shots die fast, long — they keep bouncing (more chances to hit him, and you).
   const RVB_CEIL = 6;
+  function rvbClap() {
+    const b = boss; if (b.clapT > 0) return; b.clapT = .45;
+    rvbFire({ x: dist + HERO_X + HERO_W * .8 - 27, w: 54, h: hy() + 2 * heroAmp() });
+  }
   function rvbFire(pf) {
     const b = boss, ox = pf.x - dist + pf.w / 2, oy = GROUND - pf.h - 6, by = GROUND + (b.B.y ?? -128);
     const a = Math.atan2(by - oy, b.x - ox) + R(-.42, .42), v = 300;
@@ -1841,8 +1842,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   function updateRvb(dt) {
     const b = boss;
-    b.decay = 1.3 + 1.9 * (.5 + .5 * Math.sin(b.t * 2 * Math.PI / 9));
-    if (b.tokT <= 0) { platforms.push({ kind: 'rvbpad', x: dist + WORLD_W + 30, w: 54, h: pick([34, 54, 74]) }); b.tokT = R(1.3, 1.8); }
+    b.decay = 1.5 + 2.3 * (.5 + .5 * Math.sin(b.t * 2 * Math.PI / 9));
+    b.clapT = Math.max(0, (b.clapT || 0) - dt);
     const by = GROUND + (b.B.y ?? -128) + Math.sin(b.t * 1.6) * 8, hx = HERO_X + HERO_W / 2, hTop = GROUND - hy() - 2 * heroAmp(), hBot = GROUND - hy();
     for (const sh of b.shots) {
       sh.t += dt; sh.e -= dt / b.decay; sh.x += sh.vx * dt; sh.y += sh.vy * dt;
@@ -1851,7 +1852,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (sh.y < RVB_CEIL && sh.vy < 0) { sh.vy = -sh.vy; hitWall = true; } else if (sh.y > GROUND - 3 && sh.vy > 0) { sh.vy = -sh.vy; hitWall = true; }
       if (hitWall) { sh.bounced++; if (ac && sh.e > .1) tones([12 + Math.round(sh.e * 12)], 'sine', 0, .05 * sh.e, .12); }
       if (Math.hypot(sh.x - b.x, sh.y - by) < 28) { sh.e = 0; hitBoss(1, 'rvb'); continue; }
-      if (sh.bounced && sh.t > .3 && Math.abs(sh.x - hx) < HERO_W / 2 - 8 && sh.y > hTop - 4 && sh.y < hBot + 4) { sh.e = 0; takeHit('отражение', 2); }
+      if (sh.bounced && sh.t > .3 && Math.abs(sh.x - hx) < HERO_W / 2 - 4 && sh.y > hTop - 4 && sh.y < hBot + 4) { sh.e = 0; takeHit('отражение', 2); }
     }
     b.shots = b.shots.filter(sh => sh.e > 0);
   }
@@ -1876,38 +1877,44 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         else { p.bonk = .3; tones([0], 'square', 0, .06, .08); toast = { t: 0, text: 'мимо доли · на 2 и 4', color: COL.red }; }
       }
       for (const p of b.toks) p.bonk = Math.max(0, (p.bonk || 0) - dt);
-    } else if (k === 'arp') {
-      const live = platforms.some(pf => pf.kind === 'arp' && !pf.gone && pf.x + pf.w - dist > -10);
-      if (!live) { // lay the next staircase (the same one again after a slip)
-        const [, hs] = ARP_MODES[Math.min(b.round, ARP_MODES.length - 1)];
-        let x = dist + WORLD_W + 40;
-        hs.forEach((h, i) => { if (i) x += ARP_SPEED * jumpAir(h - hs[i - 1]); platforms.push({ kind: 'arp', idx: i, x, w: ARP_W, h }); });
-        b.got = 0; b.slip = false;
+    } else if (k === 'arp') { // he jumps for you on every beat; hold fold to skip a jump
+      const beat = Math.floor(heardBeat());
+      if (beat !== b.lastBeat) {
+        b.lastBeat = beat; b.keyI = (b.keyI + 1) % 8;
+        if (onGround && !foldHeld()) { doJump(); tones([chordTone(MODES[curMode].prog[0], [0, 1, 2, 3, 4, 3, 2, 1][b.keyI]) + 12], 'square', 0, .06, .12); }
       }
-      if (onGround && !standing && b.got > 0 && !b.slip) { b.slip = true; toast = { t: 0, text: 'сорвался · ещё раз', color: COL.red }; tones([7, 0], 'square', .05, .05, .12); }
-    } else if (k === 'voc') {
-      if (b.tokT <= 0) {
-        const v = Math.random() < .45 ? b.want : pick(VOWELS.filter(x => x !== b.want));
-        b.toks.push({ x: dist + WORLD_W + 20, h: pick([14, 40, 70, 96]), v, t: 0 }); b.tokT = R(.75, 1.05);
+      if (b.tokT <= 0) { // notes: green up high (let him jump), red up high (hold), green down low (hold to stay on the ground)
+        const r = Math.random(), good = r < .62, low = good && r < .2;
+        b.toks.push({ x: dist + WORLD_W + 20, h: low ? 9 : 80, good, t: 0 }); b.tokT = R(.95, 1.35);
       }
       for (const p of b.toks) {
-        if (p.got || !hitBox(p.x - dist, p.h, 11)) continue;
+        if (p.got || !hitBox(p.x - dist, p.h, 9)) continue;
         p.got = true;
-        if (p.v === b.want) { vowelSfx(p.v, chordTone(MODES[curMode].prog[0], 2)); hitBoss(1, 'voc'); if (!b.dead) { b.want = pick(VOWELS.filter(x => x !== p.v)); setTimeout(() => boss && !boss.dead && boss.want && vowelSfx(boss.want, -12, 'square', .2), 500); } }
-        else { b.hp = Math.min(b.max, b.hp + 1); vowelSfx(p.v, -12, 'square', .25); toast = { t: 0, text: `не «${p.v}» · нужна «${b.want}»`, color: COL.red }; }
+        if (p.good) { tones([24, 31], 'square', .03, .07, .14); hitBoss(1, 'arp'); }
+        else { takeHit('фальшивая нота', 2); tones([1, -4], 'square', .04, .06, .15); }
+      }
+    } else if (k === 'voc') { // hold fold to breathe in, let go to sing at him — it only lands while his mouth is open
+      const hb = heardBeat(); b.open = Math.floor(hb) % 2 === 1 && frac(hb) < .55; // he listens on 2 and 4, briefly
+      const held = foldHeld();
+      if (held) b.charge = Math.min(1, b.charge + dt / 1.3);
+      else if (b.wasHeld) {
+        if (b.charge >= .55) {
+          b.beamT = .35; b.beamOk = b.open;
+          if (b.open) { vowelSfx(pick(VOWELS), chordTone(MODES[curMode].prog[0], 2)); hitBoss(1, 'voc', [HERO_X + HERO_W, GROUND - hy() - heroAmp()], COL.ch1); }
+          else { tones([0, -5], 'square', .04, .05, .15); toast = { t: 0, text: 'рот закрыт', color: COL.red }; }
+        }
+        b.charge = 0;
+      }
+      b.wasHeld = held; b.beamT = Math.max(0, (b.beamT || 0) - dt);
+      if (b.tokT <= 0) { // his syllables roll at you: low ones — jump, chest-high ones — stay folded
+        b.toks.push({ x: dist + WORLD_W + 20, h: Math.random() < .5 ? 10 : 40, v: pick(VOWELS), vx: -110, t: 0 }); b.tokT = R(1.3, 1.9);
+      }
+      for (const p of b.toks) {
+        p.x += p.vx * dt;
+        if (!p.got && hitBox(p.x - dist, p.h, 10)) { p.got = true; takeHit('слог вокодера', 2); }
       }
     }
     if (b.toks.length) b.toks = b.toks.filter(p => !p.got && p.x - dist > -40);
-  }
-  function arpLand(pf) {
-    const b = boss, [, hs] = ARP_MODES[Math.min(b.round, ARP_MODES.length - 1)];
-    if (b.slip || pf.idx !== b.got) { if (!b.slip) { b.slip = true; toast = { t: 0, text: 'не та ступенька', color: COL.red }; } return; }
-    pf.used = true; b.got++;
-    const c = MODES[curMode].prog[0]; tones([chordTone(c, 2 + Math.round((hs[pf.idx] - 22) / 24)) + 12], 'square', 0, .09, .18);
-    if (b.got >= hs.length) {
-      b.round++; b.got = 0; hitBoss(1, 'arp');
-      if (!b.dead) { toast = { t: 0, text: ARP_MODES[b.round][0], color: COL.ch4 }; for (const p of platforms) if (p.kind === 'arp' && p !== standing) p.gone = true; }
-    }
   }
   function drawMini(tnow) {
     const b = boss; if (!b || !b.B.mini || b.dead) return;
@@ -1939,12 +1946,27 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         fillPoly(q, c, b.lit ? .3 : .12); trace(q, c, b.lit ? 2 : 1.2); trace([px + p.w / 2, py, px + p.w / 2, py - 7, px, py - 7, px + p.w, py - 7], c, .8, .6);
       }
     } else if (k === 'voc') {
-      for (const p of b.toks) {
+      for (const p of b.toks) { // his syllables: red letters in bubbles
         const px = p.x - dist, py = GROUND - p.h; if (px < -20 || px > WORLD_W + 20) continue;
-        const good = p.v === b.want, c = good ? COL.ch4 : COL.red, q = [];
-        for (let i = 0; i <= 24; i++) { const a = i / 24 * Math.PI * 2; q.push(px + Math.cos(a) * 11, py + Math.sin(a) * 11); }
-        fillPoly(q, c, .15); trace(q, c, good ? 1.8 : 1.1);
-        text(p.v, px, py + .5, c, 'center', fontPx() + 4, 700);
+        const q = []; for (let i = 0; i <= 24; i++) { const a = i / 24 * Math.PI * 2; q.push(px + Math.cos(a) * 10, py + Math.sin(a) * 10); }
+        fillPoly(q, COL.red, .15); trace(q, COL.red, 1.4); text(p.v, px, py + .5, COL.red, 'center', fontPx() + 3, 700);
+      }
+      const hx = HERO_X + HERO_W / 2, hTop = GROUND - hy() - 2 * heroAmp() - 10;
+      if (b.charge > 0) { // the breath: a ring filling over the Sine; ready once it's past the mark
+        const q = []; for (let i = 0; i <= 30 * b.charge; i++) { const a = -Math.PI / 2 + i / 30 * Math.PI * 2; q.push(hx + Math.cos(a) * 9, hTop - 6 + Math.sin(a) * 9); }
+        if (q.length > 3) trace(q, b.charge >= .55 ? COL.ch1 : COL.dim, 2.2);
+      }
+      if (b.beamT > 0) { // the voice flying at him — through an open mouth, or bouncing off a shut one
+        const by = GROUND + (b.B.y ?? -128), q = [], tx = b.beamOk ? b.x : lerp(hx, b.x, .7);
+        for (let i = 0; i <= 60; i++) { const u = i / 60; q.push(lerp(hx, tx, u), lerp(hTop, by, u) + Math.sin(u * 40 - b.t * 50) * 4); }
+        trace(q, b.beamOk ? COL.ch1 : COL.dim, 2, b.beamT / .35);
+      }
+    } else if (k === 'arp') {
+      for (const p of b.toks) { // notes: a head and a stem; green to take, red to skip
+        const px = p.x - dist, py = GROUND - p.h; if (px < -20 || px > WORLD_W + 20) continue;
+        const c = p.good ? COL.ch4 : COL.red, q = [];
+        for (let i = 0; i <= 20; i++) { const a = i / 20 * Math.PI * 2; q.push(px + Math.cos(a) * 6, py + 3 + Math.sin(a) * 4.5); }
+        fillPoly(q, c, .5); trace(q, c, 1.6); trace([px + 6, py + 3, px + 6, py - 13, px + 11, py - 8], c, 1.6);
       }
     }
   }
@@ -1998,7 +2020,6 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   function landOn(pf) {
     if (!boss || boss.dead || pf.used) return;
-    if (pf.kind === 'arp') { arpLand(pf); return; }
     if (pf.kind === 'rvbpad') { pf.used = true; rvbFire(pf); return; }
     if (pf.kind === 'pulse') {
       pf.used = true; pf.fallT = 0;
@@ -2073,6 +2094,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (state === 'paused') { resume(); return; }
     if (state !== 'play') return;
     if (boss && boss.B.kind === 'seq' && !boss.dead) seqJudge(); // every tap is a beat, even in mid-air
+    if (boss && boss.B.kind === 'arp' && !boss.dead && boss.t > 1.4) return; // the Arpeggiator does the jumping
+    if (boss && boss.B.kind === 'rvb' && !boss.dead && boss.t > 1.4) rvbClap(); // every jump claps a reflection at the Reverberator
     if (onGround) doJump();
     else if (airJumps > 0 && fx.rect <= 0) { noteJumpDir(); vy = DJUMP_V * (triOn() ? 1.05 : 1); airJumps = 0; jumpOct = 24; syncOctave(); flash(); }
     else buffer = .13;
@@ -2737,6 +2760,60 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     return NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
   }
 
+  // Bosses that aren't waveforms get a device for a face, in the same oscilloscope line style:
+  // Bitcrusher — a chip with a DAC staircase · Sequencer — a step panel · Compressor — a gain-reduction meter ·
+  // Limiter — a brick wall under a ceiling · Arpeggiator — a keyboard · Vocoder — a mouth of band bars ·
+  // Reverberator — a room with a speaker and a ray bouncing. o: live state (bits, lit key, open mouth…), calm when beaten.
+  const DEVICES = ['bc', 'seq', 'comp', 'lim', 'arp', 'voc', 'rvb'];
+  function drawDevice(kind, cx, cy, w, h, t, col, a = 1, o = {}) {
+    const x0 = cx - w / 2, y0 = cy - h / 2, x1 = cx + w / 2, y1 = cy + h / 2, box = (l, tp, r, bt) => [l, tp, r, tp, r, bt, l, bt, l, tp];
+    const calm = o.calm ? .35 : 1, beat = frac(beatPos);
+    if (kind === 'bc') { // an IC: body, pins, a notch, a DAC staircase inside
+      const bx0 = x0 + w * .12, bx1 = x1 - w * .12, by0 = y0 + h * .2, by1 = y1 - h * .2;
+      fillPoly(box(bx0, by0, bx1, by1), col, .08); trace(box(bx0, by0, bx1, by1), col, 1.8, a);
+      for (let i = 0; i < 7; i++) { const px = lerp(bx0 + 6, bx1 - 6, i / 6); trace([px, by0, px, by0 - 8], col, 1.4, a); trace([px, by1, px, by1 + 8], col, 1.4, a); }
+      const q = []; for (let i = 0; i <= 20; i++) { const u = i / 20; q.push(bx0 + 3 + u * 9, cy + Math.sin(Math.PI * (1 + u)) * 6); } trace(q, col, 1, a * .6);
+      const bits = o.bits || 8, n = Math.max(3, Math.round(bits * .8)), st = [];
+      for (let i = 0; i <= n; i++) { const xx = lerp(bx0 + 18, bx1 - 8, i / n), v = Math.round(Math.sin(i / n * Math.PI * 2 - t * 2 * calm) * 3) / 3; st.push(xx, cy - v * h * .17); if (i < n) st.push(lerp(bx0 + 18, bx1 - 8, (i + 1) / n), cy - v * h * .17); }
+      trace(st, col, 1.8, a);
+    } else if (kind === 'seq') { // a step panel: two rows of pads, a running light, knobs on top
+      for (let i = 0; i < 4; i++) { const kx = lerp(x0 + 14, x1 - 14, i / 3), q = []; for (let k = 0; k <= 16; k++) { const an = k / 16 * Math.PI * 2; q.push(kx + Math.cos(an) * 5, y0 + 8 + Math.sin(an) * 5); } trace(q, col, 1.2, a); trace([kx, y0 + 8, kx + Math.cos(t + i) * 5, y0 + 8 + Math.sin(t + i) * 5], col, 1.2, a); }
+      const cur = Math.floor(heardBeat() * 2) % 8;
+      for (let i = 0; i < 8; i++) { const r = i < 4 ? 0 : 1, c = i % 4, px = x0 + 6 + c * (w - 12) / 4, py = y0 + 22 + r * 24, q = box(px + 2, py, px + (w - 12) / 4 - 4, py + 18);
+        if (i === cur && !o.calm) fillPoly(q, col, .55); trace(q, col, 1.3, a * (i === cur ? 1 : .55)); }
+    } else if (kind === 'comp') { // a gain-reduction meter: an arc scale and a needle that ducks on every kick
+      trace(box(x0 + 4, y0 + 4, x1 - 4, y1 - 4), col, 1.6, a);
+      const pcx = cx, pcy = y1 - 10, R = h * .62, sc = [];
+      for (let i = 0; i <= 30; i++) { const an = Math.PI * (1.2 + .6 * i / 30); sc.push(pcx + Math.cos(an) * R, pcy + Math.sin(an) * R); }
+      trace(sc, col, 1.2, a * .8);
+      for (let i = 0; i <= 6; i++) { const an = Math.PI * (1.2 + .6 * i / 6); trace([pcx + Math.cos(an) * R, pcy + Math.sin(an) * R, pcx + Math.cos(an) * (R - 7), pcy + Math.sin(an) * (R - 7)], col, 1.2, a); }
+      const gr = (o.gr ?? Math.exp(-beat * 4)) * calm, an = Math.PI * (1.8 - .6 * gr);
+      trace([pcx, pcy, pcx + Math.cos(an) * (R - 3), pcy + Math.sin(an) * (R - 3)], col, 2.2, a);
+    } else if (kind === 'lim') { // a brick wall right under a dashed ceiling
+      ctx.save(); ctx.setLineDash([5, 4]); trace([x0, y0 + 4, x1, y0 + 4], col, 1.4, a); ctx.restore();
+      const rows = 3, rh = (h - 16) / rows, bwid = w / 4, lift = !o.calm && (Math.floor(heardBeat() + .25) % 2 === 1) ? 2 : 0;
+      for (let r = 0; r < rows; r++) for (let c = -1; c < 4; c++) {
+        const bx = x0 + c * bwid + (r % 2 ? bwid / 2 : 0), byy = y0 + 12 + r * rh - (r === 0 ? lift : 0);
+        const l = Math.max(x0, bx + 1), rr = Math.min(x1, bx + bwid - 1); if (rr - l < 4) continue;
+        trace(box(l, byy, rr, byy + rh - 2), col, 1.3, a);
+      }
+    } else if (kind === 'arp') { // a keyboard: white keys, black keys, the key he's on lit
+      const n = 8, kw = w / n, lit = o.key ?? Math.floor(t * 4) % 8;
+      for (let i = 0; i < n; i++) { const q = box(x0 + i * kw, y0 + 4, x0 + (i + 1) * kw, y1 - 4); if (i === lit && !o.calm) fillPoly(q, col, .45); trace(q, col, 1.3, a); }
+      for (const i of [0, 1, 3, 4, 5]) { const kx = x0 + (i + 1) * kw - kw * .3, q = box(kx, y0 + 4, kx + kw * .6, cy + 2); fillPoly(q, col, .6); trace(q, col, 1, a); }
+    } else if (kind === 'voc') { // a mouth of band bars: open — the bars spread into a lens; shut — a thin line
+      const n = 11, open = o.open === undefined ? .5 + .5 * Math.sin(t * 6) : o.open ? 1 : .08;
+      for (let i = 0; i < n; i++) { const u = i / (n - 1), xx = lerp(x0 + 6, x1 - 6, u), env = Math.sin(Math.PI * u), hh = (3 + h * .42 * env * open * (.75 + .25 * Math.sin(t * 9 + i * 1.7))) * calm;
+        trace([xx, cy - hh, xx, cy + hh], col, 2.4, a); }
+      trace([x0 + 2, cy, x0 + 8, cy - 6, x0 + 2, cy], col, 1, a * .5);
+    } else if (kind === 'rvb') { // a room: a speaker on the left, a ray bouncing off the walls, fading
+      trace(box(x0 + 2, y0 + 2, x1 - 2, y1 - 2), col, 1.6, a);
+      const sx = x0 + 14, q = []; for (let k = 0; k <= 16; k++) { const an = k / 16 * Math.PI * 2; q.push(sx + Math.cos(an) * 6, cy + Math.sin(an) * 9); } trace(q, col, 1.6, a);
+      let px = sx + 6, py = cy, vx = Math.cos(.55 + t * .2 * calm), vy = Math.sin(.55 + t * .2 * calm), e = 1;
+      for (let k = 0; k < 9; k++) { const tx = vx > 0 ? (x1 - 4 - px) / vx : (x0 + 4 - px) / vx, ty = vy > 0 ? (y1 - 4 - py) / vy : (y0 + 4 - py) / vy, tt = Math.min(tx, ty);
+        const nx = px + vx * tt, ny = py + vy * tt; trace([px, py, nx, ny], col, 1.3, a * e); px = nx; py = ny; if (tx < ty) vx = -vx; else vy = -vy; e *= .72; }
+    }
+  }
   function drawBoss(tnow) {
     const b = boss, by = GROUND + (b.B.y ?? -128) + Math.sin(b.t * 1.6) * 8, bw = 104;
     const amp = 36 * (b.key === 'wt' && dubRate && !b.dead ? .72 + .28 * Math.sin(2 * Math.PI * dubRate * tnow) : 1);
@@ -2754,7 +2831,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     };
     const jit = () => b.dead ? R(-1, 1) * 6 * (1 - dieK) : 0;
     const alpha = b.dead ? 1 - dieK * .5 : 1;
-    if (b.key === 'bc') {
+    if (DEVICES.includes(b.key) && b.key !== 'seq') { // a device for a face (the Sequencer's fight face is his step grid, below)
+      drawDevice(b.key, b.x + jit(), by, bw, amp * 2, b.t, col, alpha, { calm: b.dead, bits: b.bits, key: b.keyI, open: b.key === 'voc' ? b.open : undefined, gr: b.key === 'comp' && b.thr !== undefined ? clamp((160 - b.thr) / 136, 0, 1) : undefined });
+    } else if (b.key === 'bc') {
       const lv = Math.max(2, Math.round(Math.pow(2, (b.bits - 2) / 2.2))), samples = 6 + b.bits;
       const q = [];
       for (let i = 0; i <= 200; i++) {
@@ -2852,6 +2931,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         for (let i = 0; i <= 110; i++) { const u = i / 110, th = u * Math.PI * 2 * 2.2; q.push(x0 + u * w, cy - (2 * frac(th / (2 * Math.PI) * (1 + DET[k]) + k * .13 + tnow * DET[k] * 3) - 1) * amp * .8 * talk + (k - 3) * 1.5); }
         trace(q, col, 1.2, .55 * a);
       }
+    } else if (DEVICES.includes(c.wave)) {
+      drawDevice(c.wave, x, cy, w, amp * 2.1, tnow, col, a);
     } else if (c.wave === 'wt') {
       const scan = tnow * .7;
       for (let k = 4; k >= 0; k--) {
@@ -3572,11 +3653,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
     if (boss && boss.B.mini && !boss.dead && !storyQ) {
       const b = boss, k = b.B.kind, done = (b.max - b.hp) / b.max;
-      if (k === 'comp') bossCallout(b.warn ? '↓ НА РАЗ' : 'ЛОВИ ПИКИ', `${b.max - b.hp}/${b.max}`, b.warn ? COL.red : COL.ch4, done);
-      else if (k === 'lim') bossCallout(b.lit ? 'БЕЙ!' : '2 · 4', `${b.max - b.hp}/${b.max}`, b.lit ? COL.ch4 : COL.red, done);
-      else if (k === 'arp') bossCallout(ARP_MODES[Math.min(b.round, 3)][0], `ступенька ${b.got}/${ARP_MODES[Math.min(b.round, 3)][1].length}`, b.slip ? COL.red : COL.ch4, done);
-      else if (k === 'rvb') bossCallout(`RT60 ${b.decay.toFixed(1)}s`, `${b.max - b.hp}/${b.max} · на пады`, b.decay > 2.4 ? COL.red : COL.ch4, done);
-      else if (k === 'voc') bossCallout(`«${b.want}»`, `${b.max - b.hp}/${b.max}`, COL.ch4, done);
+      if (k === 'rvb') bossCallout(`${b.max - b.hp}/${b.max}`, `RT60 ${b.decay.toFixed(1)}s`, b.decay > 2.4 ? COL.red : COL.ch4, done);
+      else bossCallout(`${b.max - b.hp}/${b.max}`, '', COL.ch4, done); // the picture says what to do
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1, не 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
@@ -3617,7 +3695,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       ctx.fillStyle = c; ctx.fillRect(cw - pad - tbw * clamp(rem / dur, 0, 1), fyy + fp * .7, tbw * clamp(rem / dur, 0, 1), 3); ctx.restore();
       fyy += fp * 1.75;
     }
-    if (foldAmt > .05 && !MOB) textScreen(`FOLD ×${drive.toFixed(1)}`, cw - pad, fyy, COL.ch3, 'right');
+    if (foldAmt > .05 && !MOB && !boss) textScreen(`FOLD ×${drive.toFixed(1)}`, cw - pad, fyy, COL.ch3, 'right');
     if (power) {
       const rem = Math.max(0, power.dur - power.t), c = powerColor(power.type, tnow), bw = Math.min(110, cw * .22);
       textScreen(`${POWERS[power.type].name} ${rem.toFixed(1)}s`, cw / 2, pad + fp / 2, c, 'center');

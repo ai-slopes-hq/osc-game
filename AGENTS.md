@@ -198,11 +198,16 @@ Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the leve
 
 | Level | Mini-boss | Mechanic |
 |---|---|---|
-| 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6) |
-| 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles |
-| 6 | Arpeggiator `arp` | Staircases of note platforms UP / DOWN / UP·DOWN / RANDOM (`ARP_MODES`): land on every step in order without touching the ground; a slip replays it. The run slows to `ARP_SPEED` and each step is laid one jump's flight (`jumpAir(dh)` × speed) after the last, so a jump from anywhere on a step lands on the next |
-| 9 | Reverberator `rvb` | Pads come by (`kind:'rvbpad'`); land on one and it throws your reflection at him, aimed ±24°. A miss bounces off the walls, ceiling and floor (`updateRvb`, `b.shots`), turns red and hurts you (2 partials) until it decays; his RT60 (`b.decay`, 1.3–3.2 s) drifts — long decay, more bounces. Run slows to `ARP_SPEED` |
-| 8 | Vocoder `voc` | He asks for a vowel (`VOWELS`, formant synth `vowelSfx`); catch that one, a wrong one gives him a level back |
+| 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6). No hint text: the line says it |
+| 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles. No hint text: lit bricks say it |
+| 6 | Arpeggiator `arp` | He jumps for you on every beat (manual jump is off); hold fold to skip a jump. Green notes up high — let him jump; red notes up high — hold; green notes on the ground — hold to stay down. 8 greens; a red costs 2 partials |
+| 9 | Reverberator `rvb` | Every jump (ground or double) claps a reflection at him (`rvbClap`, 0.45 s cooldown), aimed ±24°. A miss bounces off the walls, ceiling and floor (`updateRvb`, `b.shots`), turns red and hurts you (2 partials) until it decays; his RT60 (`b.decay`, 1.5–3.8 s) drifts — long decay, more bounces. Mashing fills the room with your own echoes |
+| 8 | Vocoder `voc` | Hold fold to breathe in (a ring fills over the Sine), let go to sing at him — it lands only while his mouth of band bars is open (briefly on beats 2 and 4). His syllables roll in: low — jump, chest-high — stay folded |
+
+Bosses that aren't waveforms (Bitcrusher, Sequencer, Compressor, Limiter, Arpeggiator, Vocoder, Reverberator) have a
+device for a face, drawn by `drawDevice` in dialogue and in the fight: a chip with a DAC staircase (steps = his bits),
+a step panel, a gain-reduction meter (needle = his threshold), a brick wall, a keyboard (lit key = his jump), a mouth of
+band bars (open = listening), a room with a bouncing ray. Only real waveforms are drawn as waves.
 
 **To add a boss:** an entry in `BOSSES`, `boss:` on a level, init in `spawnBoss`, an `update*` branch in `updateBoss`,
 a branch in `drawBoss`, a `bossCallout` in `render`, a `progressNow` case, lines in `CAST` (the test picker is built from `LEVELS`).
