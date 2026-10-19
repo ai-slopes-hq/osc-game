@@ -451,21 +451,21 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   };
 
   // ---------- levels ----------
-  const ALL_G = ['square','saw','tri','tan','gauss','fft','am','redux','rect','ring'];
+  const ALL_G = ['square','saw','tri','tan','gauss','fft','am','redux','rect','ring','echo','gcomp','reso','nfloor','fbk','dcs','pinv','snh'];
   const ALL_C = ['sinc','floor','noise','inv','comb','sh'];
   const LEVELS = [
     { key:'A', name:'A Aeolian', abbr:'aeol', scope:'A AEOL', bpm:104, speed0:230, len:6000, pat:[0,1,2,3,4,3,2,1], boss:'dsq',
       prog:[{t:[0,3,7],r:-12},{t:[-4,0,3],r:-16},{t:[-2,3,7],r:-9},{t:[-2,2,5],r:-14}],
-      ground:['square','saw','tri','tan','gauss'], ceil:['sinc','floor','noise','inv'], pTall:.12, pCeil:.3, intro:['tri','sinc','square'] },
+      ground:['square','saw','tri','tan','gauss','nfloor'], ceil:['sinc','floor','noise','inv'], pTall:.12, pCeil:.3, intro:['tri','sinc','square','nfloor'] },
     { key:'D', name:'D Dorian', abbr:'dor', scope:'D DOR', bpm:110, speed0:250, len:7500, pat:[0,2,1,3,2,4,3,5],
       prog:[{t:[-7,-4,0,3],r:-19},{t:[-2,2,5],r:-14},{t:[0,3,7,10],r:-12},{t:[-9,-5,-2],r:-21}],
-      ground:['fft','fft','square','tri','gauss','tan','rect'], ceil:['comb','comb','sinc','noise'], pTall:.12, pCeil:.32, intro:['fft','comb','rect'], boss:'bc' },
+      ground:['fft','fft','square','tri','gauss','tan','rect','echo','reso','snh','nfloor'], ceil:['comb','comb','sinc','noise'], pTall:.12, pCeil:.32, intro:['fft','comb','echo','reso','rect','snh'], boss:'bc' },
     { key:'E', name:'E Phrygian', abbr:'phry', scope:'E PHRY', bpm:116, speed0:265, len:7500, pat:[0,1,2,1,3,2,4,2], boss:'ssaw',
       prog:[{t:[-5,-2,2],r:-17},{t:[-4,0,3],r:-16},{t:[-5,-2,2],r:-17},{t:[-7,-4,0],r:-19}],
-      ground:['redux','redux','am','am','saw','fft','tan','ring','rect'], ceil:['sh','sh','comb','floor','inv'], pTall:.14, pCeil:.33, intro:['redux','sh','am','ring'] },
+      ground:['redux','redux','am','am','saw','fft','tan','ring','rect','gcomp','fbk','pinv','echo'], ceil:['sh','sh','comb','floor','inv'], pTall:.14, pCeil:.33, intro:['redux','gcomp','sh','fbk','am','ring','pinv'] },
     { key:'F', name:'F Lydian', abbr:'lyd', scope:'F LYD', bpm:122, speed0:285, len:9000, pat:[0,1,2,3,4,5,3,1],
       prog:[{t:[-4,0,3,7],r:-16},{t:[-2,2,5],r:-16},{t:[-4,0,3,7],r:-16},{t:[-5,-2,2,5],r:-17}],
-      ground:ALL_G, ceil:ALL_C, pTall:.17, pCeil:.34, intro:[], boss:'seq' },
+      ground:ALL_G, ceil:ALL_C, pTall:.17, pCeil:.34, intro:['dcs'], boss:'seq' },
     { key:'F#', name:'F# Aeolian', abbr:'aeol', scope:'F# AEOL', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt',
       prog:[{t:[-3,0,4],r:-15},{t:[-7,-3,0],r:-19},{t:[0,4,7],r:-12},{t:[-5,-1,2],r:-17}], // F#m – D – A – E: the progressive-house turn
       ground:ALL_G, ceil:ALL_C, pTall:.18, pCeil:.35, intro:[] },
@@ -487,8 +487,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     mdr: { dur:5.5, name:'MDR', desc:'неуязвимость' },
     tri: { dur:8, name:'TRI', desc:'лунный прыжок' },
     cpx: { dur:8, name:'CPX', desc:'режет висящие' },
+    tst: { dur:6, name:'TIME STRETCH', desc:'медленнее' },
   };
-  const powerColor = (type, t) => type === 'mdr' ? CYCLE[Math.floor(t * 12) % CYCLE.length] : type === 'cpx' ? COL.math : type === 'tri' ? COL.tri : COL.ch1;
+  const powerColor = (type, t) => type === 'tst' ? COL.ch2 : type === 'mdr' ? CYCLE[Math.floor(t * 12) % CYCLE.length] : type === 'cpx' ? COL.math : type === 'tri' ? COL.tri : COL.ch1;
 
   const $ = id => document.getElementById(id);
   const screenEl = $('screen'), gridCv = $('grid'), cv = $('game');
@@ -564,7 +565,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
+  let musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -573,6 +574,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     mdr: { osc:'square', trim:.42, lp:1900, wet:0, fm:0 },
     tri: { osc:'triangle', trim:1, lp:5200, wet:.36, fm:0 },
     cpx: { osc:'sine', trim:.9, lp:6000, wet:.12, fm:950 },
+    tst: { osc:'sine', trim:1, lp:4200, wet:.3, fm:0 },
   };
   function initAudio() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
@@ -583,7 +585,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     master.connect(comp); comp.connect(ac.destination);
     // all music goes through one low-pass, so long events can close or open the whole mix (SFX bypass it)
     music = ac.createGain(); musicLP = ac.createBiquadFilter(); musicLP.type = 'lowpass'; musicLP.frequency.value = 18000; musicLP.Q.value = .9;
-    music.connect(musicLP); musicLP.connect(master);
+    musicHP = ac.createBiquadFilter(); musicHP.type = 'highpass'; musicHP.frequency.value = 20; // phase invert hollows the mix
+    music.connect(musicHP); musicHP.connect(musicLP); musicLP.connect(master);
+    fbOsc = ac.createOscillator(); fbOsc.type = 'sine'; fbOsc.frequency.value = 700; fbG = ac.createGain(); fbG.gain.value = 0; // feedback monster's whine
+    fbOsc.connect(fbG); fbG.connect(master); fbOsc.start();
     osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = 220;
     fmOsc = ac.createOscillator(); fmOsc.frequency.value = 440;
     fmGain = ac.createGain(); fmGain.gain.value = 0;
@@ -662,6 +667,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     setInterval(schedule, 20);
   }
   function bpmNow() {
+    if (power && power.type === 'tst') return Math.round(bpmBase() * .75); // time stretch: the music slows with the world
+    return bpmBase();
+  }
+  function bpmBase() {
     if (boss && boss.B.kind === 'harm' && !boss.dead) return 140; // dubstep tempo, half-time feel
     const L = LEVELS[level]; return Math.round(clamp(L.bpm + (speed - L.speed0) * .2, L.bpm, L.bpm + 36)); }
   const stepDur = () => 60 / bpmNow() / 4;
@@ -1016,6 +1025,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     crushSh.curve = c; if (chipSh) chipSh.curve = c;
   }
   function setRect(on) { if (!ac) return; const t = ac.currentTime; dryG.gain.setTargetAtTime(on ? 0 : 1, t, .02); rectG.gain.setTargetAtTime(on ? .9 : 0, t, .02); }
+  function setInv(on) { if (ac && musicHP) musicHP.frequency.setTargetAtTime(on ? 520 : 20, ac.currentTime, .15); }
+  function setSnh(on) { setCrushBits(on ? 5 : 16); } // the Sine's voice goes stepped while the hold is on
   function setRing(on) { if (!ac) return; const t = ac.currentTime; ringG.gain.setTargetAtTime(on ? 0 : 1, t, .02); ringDepth.gain.setTargetAtTime(on ? 1.3 : 0, t, .02); }
   function setBossMusic(on) { bossMusic = on; if (ac) bass.type = on ? 'sawtooth' : 'triangle'; }
   // Long events animate the music low-pass: a level fades in from a closed filter, the boss gate and a boss's
@@ -1029,6 +1040,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (state === 'dying' || state === 'over') f = 280;
     if (state === 'play' && slow < 1) f = Math.min(f, lerp(600, 18000, slow * slow));
     if (state === 'play' && invulnT > 0) f = Math.min(f, lerp(18000, 650, invulnT / 1.6));
+    const rs = !boss && obstacles.find(o => o.kind === 'reso' && o.x - dist < WORLD_W && o.x - dist > -40);
+    if (rs) f = Math.min(f, 450 + 8500 * rs.lvl() * rs.lvl());
+    if (musicLP) musicLP.Q.setTargetAtTime(rs ? 7 : .9, ac.currentTime, .1);
     if (lpSweep) { lpSweep.t += dt; const u = Math.min(1, lpSweep.t / lpSweep.dur); f = Math.min(f, lpSweep.from * Math.pow(18000 / lpSweep.from, u * u)); if (u >= 1) lpSweep = null; }
     if (Math.abs(f - lpNow) / lpNow > .03) { lpNow = f; musicLP.frequency.setTargetAtTime(f, ac.currentTime, .06); }
   }
@@ -1162,8 +1176,25 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       case 'spike': Object.assign(o, { w: R(26, 34), h: R(36, 48), label: 'δ(x)', samples: 40, prof: u => 1 - Math.abs(2 * u - 1) }); break;
       case 'gauss': Object.assign(o, { w: R(70, 100), h: R(46, 70), label: 'y = e^(−x²)', prof: u => Math.exp(-Math.pow((u - .5) * 5, 2)) }); break;
       // effect gates: not lethal, they change the signal for a while. Jump over to avoid.
-      case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ выпрямитель', prof: () => 1 }); break;
-      case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ кольцевой', prof: () => 1 }); break;
+      case 'rect': Object.assign(o, { w: 26, h: R(62, 76), gate: 'rect', label: 'max(0, x)', hint: '↑ rectify', prof: () => 1 }); break;
+      case 'ring': Object.assign(o, { w: 26, h: R(62, 76), gate: 'ring', label: 'x · cos ωt', hint: '↑ ring mod', prof: () => 1 }); break;
+      case 'pinv': Object.assign(o, { w: 26, h: R(62, 76), gate: 'pinv', label: '−x', hint: '↑ phase invert', prof: () => 1 }); break;
+      case 'snh': Object.assign(o, { w: 26, h: R(62, 76), gate: 'snh', label: 'S&H', hint: '↑ sample & hold', prof: () => 1 }); break;
+      // echo delay: a pulse and its fading repeats one beat apart (spawn() adds the copies); hitting one sets a shadow on you
+      case 'echo': Object.assign(o, { w: 22, h: R(34, 46), label: 'echo delay', hint: '↑ echo delay ×3', prof: u => edge(u, .18) }); break;
+      // gate compressor: a wall that ducks on every beat, like a sidechained pad — slip through while it's squashed
+      case 'gcomp': Object.assign(o, { w: 26, h: R(104, 118), big: true, label: 'gate compressor', hint: '↑ когда сжат',
+        prof: u => edge(u, .12) * (.24 + .76 * (1 - Math.exp(-frac(beatPos) * 4.2))) }); break;
+      // resonant peak: a needle that rises and falls with an LFO; the music's filter resonates along with it
+      case 'reso': { const ph = R(0, 2); Object.assign(o, { w: 28, h: R(100, 116), big: true, label: 'resonant peak', hint: '↑ когда опущен', samples: 80,
+        lvl: () => .14 + .86 * (.5 + .5 * Math.sin(Math.PI * (beatPos / 2 + ph))),
+        prof(u) { const x = (u - .5) * 10; return this.lvl() / (1 + x * x); } }); } break;
+      // noise floor: a hissing strip of ground — you can't stand on it, only fly over
+      case 'nfloor': Object.assign(o, { w: R(90, 130), h: 7, zone: true, label: 'noise floor', hint: '↑ не стоять', samples: 90, prof: () => .3 + .7 * Math.random() }); break;
+      // feedback: a whine that grows exponentially once it's on screen — jump it while it's small
+      case 'fbk': Object.assign(o, { w: 24, h: 8, grow: 0, monster: true, vx: 40, label: 'feedback', hint: '↑ пока мал', samples: 40, prof: u => Math.pow(1 - Math.abs(2 * u - 1), 1.6) }); break;
+      // DC offset: a digital snake whose body floats up and down with a slow offset — jump it low, fold under it high
+      case 'dcs': Object.assign(o, { w: 64, h: 14, band: true, monster: true, vx: 46, off: 0, label: 'DC offset', hint: '↑↓ по смещению', prof: () => 1 }); break;
       case 'pi': Object.assign(o, { w: R(24, 34), h: R(110, 128), tall: true, label: 'y = Π(x)', prof: u => edge(u, .1) }); break;
       case 'sqrt': Object.assign(o, { w: R(46, 60), h: R(104, 122), tall: true, label: 'y = √x', prof: u => u > .96 ? (1 - u) / .04 : Math.sqrt(u / .96) }); break;
       case 'fft': {
@@ -1213,7 +1244,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     pop = { t: 0, text, color, prio };
   };
   let platforms = [], standing = null, fmIndex = 0, idxTokens = [], invulnT = 0;
-  let fx = { rect: 0, ring: 0, ringPh: 0 };
+  let fx = { rect: 0, ring: 0, ringPh: 0, inv: 0, snh: 0 }, flipK = 1, snhY = 0, snhStep = -1, shadow = null, rhythmT = 0, glideC = 0;
   let harmTokens = [], shots = [];
   let levelPartials = 0, gateWarned = false, gateOpenSaid = false, bitTokens = [], heroPulse = 0;
   let boss = null, bossPending = false, bossCheckpoint = -1, bossStartPts = 0, bossStartPartials = 0, ally = null, storyQ = null;
@@ -1234,14 +1265,14 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     dist = 0; speed = L.speed0; y = 0; vy = 0; onGround = true; buffer = 0; airJumps = 0;
     obstacles = []; pickups = []; pills = []; beams = []; modeCaps = []; nextX = WORLD_W + 70; deathT = 0;
     platforms = []; standing = null; fmIndex = 0; idxTokens = []; invulnT = 0;
-    fx = { rect: 0, ring: 0, ringPh: 0 }; setRect(false); setRing(false);
+    fx = { rect: 0, ring: 0, ringPh: 0, inv: 0, snh: 0 }; setRect(false); setRing(false); setInv(false); setSnh(false); shadow = null; rhythmT = 0;
     levelPartials = START_PARTIALS; gateWarned = false; gateOpenSaid = false; bitTokens = []; setCrushBits(16); setBattleFM(0); harmTokens = []; setDubLayers(8);
     levelStart = 0; levelSpawn = 0; marker = null; power = null; toast = null; shake = 0;
     boss = null; bossPending = false; ally = null; victoryRun = false; setBossMusic(false);
     octave = 0; jumpOct = 0; visOct = 0; setWave('sine'); curMode = level;
     banner = { t: 0, l1: `Уровень ${level + 1}`, l2: L.name };
   }
-  let rectAt = -1e9;
+  let rectAt = -1e9; const GATES = ['rect', 'ring', 'pinv', 'snh'];
   function spawn() {
     const L = LEVELS[level], len = levelLen();
     if (nextX - levelStart > len) {
@@ -1261,12 +1292,18 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       else if (r < pTall + L.pCeil) kind = pick(L.ceil);
       else kind = pick(L.ground);
       // rectify is a nuisance in bulk: half as likely, and never within ~3000 units of the last one
-      if (kind === 'rect' && (nextX - rectAt < 3000 || Math.random() < .5)) kind = pick(L.ground.filter(k => k !== 'rect'));
+      // effect gates are a nuisance in bulk: half as likely, and never within ~3000 units of the last one
+      if (GATES.includes(kind) && (nextX - rectAt < 3000 || Math.random() < .5)) kind = pick(L.ground.filter(k => !GATES.includes(k)));
     }
-    if (kind === 'rect') rectAt = nextX;
+    if (GATES.includes(kind)) rectAt = nextX;
     const ob = makeOb(kind, nextX);
     tagHint(ob);
     obstacles.push(ob); levelSpawn++;
+    if (ob.kind === 'echo') { // two fading repeats, one beat apart
+      const bd = speed * 60 / bpmNow();
+      for (let k = 1; k <= 2; k++) { const e = makeOb('echo', ob.x + k * bd); e.h = ob.h * Math.pow(.72, k); e.copy = k; e.label = ''; obstacles.push(e); }
+      ob.span = 2 * bd + ob.w;
+    }
     if (victoryRun && levelSpawn % 6 === 3) { // free play: a mode capsule every few obstacles
       const others = MODES.map((_, i) => i).filter(i => i !== curMode && !modeCaps.some(m => m.mode === i));
       modeCaps.push({ x: ob.x + ob.w + Math.max(speed * .6, 110), h: pick([12, 55]), mode: pick(others), seed: R(0, 6), got: false });
@@ -1278,16 +1315,18 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
     const gapT = lerp(1.25, .82, dd) + Math.random() * lerp(.7, .5, dd);
     // a double jump stays airborne ~0.9 s: leave room to land before the next obstacle
-    const gap = ob.tall ? Math.max(speed * Math.max(gapT, 1.05), 300) : Math.max(speed * gapT, 170);
+    const gap = ob.tall ? Math.max(speed * Math.max(gapT, 1.05), 300) : Math.max(speed * gapT, ob.big ? 230 : 170);
     const mid = ob.x + ob.w + gap * .5;
     if ((level === 0 && levelSpawn === 5) || (levelSpawn > 3 && Math.random() < .13)) {
       pills.push({ x: mid, h: pick([12, 12, 55]), type: pick(capsules()), seed: R(0, 6), got: false });
       pillCount++;
     } else if (Math.random() < .25) pickups.push({ x: mid, h: pick([40, 70, 135]), got: false, t: 0, seed: R(0, 6) });
-    nextX = ob.x + ob.w + gap;
+    nextX = ob.x + (ob.span || ob.w) + gap;
+    // a glide ramp now and then, ending right before the next obstacle: ride it up and get launched over
+    if (levelSpawn > 3 && Math.random() < .09 && gap > 200) platforms.push({ kind: 'glide', x: nextX - 150, w: 135, h0: 2, h1: 62, h: 2 });
   }
   // CPX from the start; Meandr's capsule after he is freed (level 2+), Triangle's after level 3's boss
-  const capsules = () => level >= 3 ? ['cpx', 'mdr', 'tri'] : level >= 1 ? ['cpx', 'mdr'] : ['cpx'];
+  const capsules = () => (level >= 3 ? ['cpx', 'mdr', 'tri'] : level >= 1 ? ['cpx', 'mdr'] : ['cpx']).concat(bpmNow() >= 118 ? ['tst'] : []); // time stretch only once it's fast
   function tagHint(ob) {
     const cat = !ob.ground ? 'ceil' : ob.tall ? 'tall' : 'ground';
     if (ob.hint && !seenKind.has(ob.kind)) ob.showHint = ob.hint;
@@ -1439,6 +1478,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   function applyFx(kind) {
     if (kind === 'rect') { fx.rect = 5; setRect(true); toast = { t: 0, text: 'RECTIFY · ниже прыжок', color: COL.fx }; }
+    else if (kind === 'pinv') { fx.inv = 6; setInv(true); toast = { t: 0, text: 'PHASE INVERT', color: COL.fx }; }
+    else if (kind === 'snh') { fx.snh = 5; snhStep = -1; setSnh(true); toast = { t: 0, text: 'SAMPLE & HOLD', color: COL.fx }; }
     else { fx.ring = 6; fx.ringPh = Math.PI / 2; setRing(true); toast = { t: 0, text: 'RING MOD · двойник', color: COL.fx }; }
     noise(.18, 'bandpass', 2500, 600, .2);
   }
@@ -1448,10 +1489,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // Sonic-style lives: every level starts with 4 partials; a hit costs 4 (they scatter and can be grabbed back).
   // With none left, a hit is the end of the run.
   const START_PARTIALS = 4, HIT_COST = 4;
-  function takeHit(label) {
+  function takeHit(label, cost = HIT_COST) {
     if (god || invulnT > 0 || state !== 'play') return;
     if (levelPartials <= 0) { die({ label }); return; }
-    const lost = Math.min(HIT_COST, levelPartials);
+    const lost = Math.min(cost, levelPartials);
     levelPartials -= lost; invulnT = 1.6;
     for (let i = 0; i < lost; i++) pickups.push({ x: dist + HERO_X + 70 + i * 30 + R(-6, 6), h: R(18, 78), got: false, t: 0, seed: R(0, 6), lost: true, age: 0 });
     sfxPartialLoss(levelPartials + lost, levelPartials); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
@@ -1634,11 +1675,14 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
 
   const heroAmp = () => lerp(A_NORM, A_FOLD, foldAmt);
+  const hy = () => fx.snh > 0 ? snhY : y; // where the Sine is (as drawn) — sample & hold freezes it between steps
   function collide() {
-    const amp = heroAmp(), bot = y + 1, top = y + 2 * amp - 2;
+    const yy = hy(), amp = heroAmp(), bot = yy + 1, top = yy + 2 * amp - 2;
     const x0 = HERO_X + 5, x1 = HERO_X + HERO_W - 5;
     for (const ob of obstacles) {
       if (ob.broken || ob.gate) continue;
+      if (ob.zone) { const ox = ob.x - dist; if (onGround && !standing && yy < 1 && ox < x1 - 4 && ox + ob.w > x0 + 4) return ob; continue; } // noise floor: only if you stand on it
+      if (ob.band) { const ox = ob.x - dist; if (ox < x1 && ox + ob.w > x0 && top > ob.off + 1 && bot < ob.off + ob.h - 1) return ob; continue; } // DC snake: a band in the air
       const ox = ob.x - dist;
       if (ox > x1 || ox + ob.w < x0) continue;
       const a = Math.max(x0, ox), b = Math.min(x1, ox + ob.w);
@@ -1650,12 +1694,18 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
     return null;
   }
-  const hitBox = (px, ph, r) => px + r > HERO_X + 3 && px - r < HERO_X + HERO_W - 3 && ph + r > y && ph - r < y + 2 * heroAmp();
+  const hitBox = (px, ph, r) => px + r > HERO_X + 3 && px - r < HERO_X + HERO_W - 3 && ph + r > hy() && ph - r < hy() + 2 * heroAmp();
 
   const triOn = () => power && power.type === 'tri';
   function noteJumpDir() {
   }
-  function doJump() { noteJumpDir(); vy = JUMP_V * (triOn() ? 1.05 : 1) * (fx.rect > 0 ? .72 : 1); onGround = false; standing = null; airJumps = 1; buffer = 0; jumpOct = 12; syncOctave(); flash(); }
+  function doJump() { rhythmCheck(); noteJumpDir(); vy = JUMP_V * (triOn() ? 1.05 : 1) * (fx.rect > 0 ? .72 : 1); onGround = false; standing = null; airJumps = 1; buffer = 0; jumpOct = 12; syncOctave(); flash(); }
+  // a jump right on the beat (as heard) doubles the partials you catch in the next 1.6 s
+  function rhythmCheck() {
+    if (boss || state !== 'play' || !ac) return;
+    const ph = frac(heardBeat());
+    if (Math.min(ph, 1 - ph) < .09) { rhythmT = 1.6; if (!toast) toast = { t: 0, text: 'в долю · ×2', color: COL.ch1 }; }
+  }
   function pressJump() {
     if (state === 'story') { storyNext(); return; }
     if (state === 'title' || state === 'over') { start(state === 'over' ? level : 0, state === 'over'); return; }
@@ -1707,7 +1757,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function tutTick(dt) {
     if (state !== 'play' || boss || bossPending || victoryRun || storyQ) { tut = null; slow = 1; return; }
     if (!tut && tutDone.size < 3) { // the nearest obstacle ahead, if its kind is new
-      const ob = obstacles.find(o => !o.gate && !o.enemy && !o.broken && o.x - dist > HERO_X + HERO_W - 4);
+      const ob = obstacles.find(o => !o.gate && !o.enemy && !o.monster && !o.zone && !o.band && !o.copy && !o.broken && o.x - dist > HERO_X + HERO_W - 4);
       if (ob && !tutDone.has(obCat(ob)) && ob.x - dist < WORLD_W) {
         const cat = obCat(ob);
         tut = { ob, cat, phase: 1, at: cat === 'ceil' ? 26 : bestTakeoff(ob, cat === 'tall') };
@@ -1791,7 +1841,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function die(ob) {
     buzz(140);
     state = 'dying'; deathT = 0; killer = ob.label; power = null; lastEndless = victoryRun;
-    fx.rect = fx.ring = 0; setRect(false); setRing(false);
+    fx.rect = fx.ring = fx.inv = fx.snh = 0; setRect(false); setRing(false); setInv(false); setSnh(false); shadow = null;
     playing = false; sfxCrash(); setMode();
   }
   function gameOver() {
@@ -2078,6 +2128,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (toast) { toast.t += dt; if (toast.t > 1.8) toast = null; }
     if (pop) { pop.t += dt; if (pop.t > 1.1) pop = null; }
     shake = Math.max(0, shake - dt);
+    flipK += ((fx.inv > 0 ? -1 : 1) - flipK) * (1 - Math.exp(-dt * 7)); // phase invert turns the world upside down
     for (const ob of obstacles) if (ob.broken) ob.bt += dt;
     for (const b of beams) b.t += dt;
     beams = beams.filter(b => b.t < (b.life || .35));
@@ -2093,9 +2144,36 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       invulnT = Math.max(0, invulnT - dt);
       if (fx.rect > 0) { fx.rect -= dt; if (fx.rect <= 0) setRect(false); }
       if (fx.ring > 0) { fx.ring -= dt; fx.ringPh += dt * 1.15; if (fx.ring <= 0) setRing(false); }
+      if (fx.inv > 0) { fx.inv -= dt; if (fx.inv <= 0) setInv(false); }
+      if (fx.snh > 0) { fx.snh -= dt; const st = Math.floor(heardBeat() * 2); if (st !== snhStep) { snhStep = st; snhY = y; } if (fx.snh <= 0) setSnh(false); } // the Sine is sampled on every 8th
+      rhythmT = Math.max(0, rhythmT - dt);
+      // living obstacles: feedback grows once it's on screen, the DC snake's offset drifts with the bar, echoes ping as they pass
+      let fbMax = 0, nfNear = false;
+      for (const ob of obstacles) {
+        const ox = ob.x - dist;
+        if (ob.kind === 'fbk' && !ob.broken && ox < WORLD_W) { ob.grow += dt; ob.h = Math.min(150, 8 * Math.exp(ob.grow / 1.05)); if (ox > -30) fbMax = Math.max(fbMax, ob.h); }
+        if (ob.kind === 'dcs') ob.off = 34 * (.5 - .5 * Math.cos(Math.PI * beatPos / 2));
+        if (ob.kind === 'echo' && !ob.pinged && ox < HERO_X + HERO_W / 2) { ob.pinged = true; tones([31 - (ob.copy || 0) * 5], 'sine', 0, .07 * Math.pow(.6, ob.copy || 0), .18); }
+        if (ob.kind === 'nfloor' && ox < HERO_X + 160 && ox + ob.w > HERO_X - 20) nfNear = true;
+      }
+      if (ac && fbG) { fbG.gain.setTargetAtTime(fbMax ? .012 + fbMax / 150 * .05 : 0, ac.currentTime, .05); fbOsc.frequency.setTargetAtTime(500 + fbMax * 14, ac.currentTime, .05); }
+      if (ac && noiseBedG && !boss) noiseBedG.gain.setTargetAtTime(nfNear ? .035 : 0, ac.currentTime, .08); // the noise floor hisses as you near it
+      // the echo's shadow: a copy of you from half a second ago, closing in from behind
+      if (shadow) {
+        shadow.t += dt; shadow.hist.push([shadow.t, hy()]); while (shadow.hist.length && shadow.hist[0][0] < shadow.t - .45) shadow.y = shadow.hist.shift()[1];
+        shadow.x += (HERO_X - shadow.x) * (1 - Math.exp(-dt * .9));
+        if (!god && invulnT <= 0 && Math.abs(shadow.x - HERO_X) < 16 && Math.abs(shadow.y - hy()) < 14) { takeHit('тень эха', 2); shadow = null; } // the shadow bites softer
+        else if (shadow.t > 7) shadow = null;
+      }
+      // glide ramps: their height follows the slope under you; you step on from the ground, ride up, get launched off the end
+      for (const pf of platforms) if (pf.kind === 'glide') pf.h = lerp(pf.h0, pf.h1, clamp((HERO_X + HERO_W / 2 - (pf.x - dist)) / pf.w, 0, 1));
+      if (onGround && !standing && y < 1) { const g = platforms.find(pf => pf.kind === 'glide' && pf.h < 9 && HERO_X + HERO_W - 10 > pf.x - dist && HERO_X + 10 < pf.x - dist + pf.w); if (g) { standing = g; y = g.h; } }
+      const gl = standing && standing.kind === 'glide' ? clamp((HERO_X + HERO_W / 2 - (standing.x - dist)) / standing.w, 0, 1) : 0;
+      if (gl) speed = Math.min(SPEED_MAX + 70, speed + 260 * dt); // a natural booster
+      const gc = Math.round(gl * 700); if (ac && gc !== glideC) { glideC = gc; osc.detune.setTargetAtTime(gc, ac.currentTime, gc ? .05 : .2); } // portamento up the ramp
       const over = pf => HERO_X + HERO_W - 10 > pf.x - dist && HERO_X + 10 < pf.x - dist + pf.w;
-      if (onGround && standing && standing.kind === 'pulse') y = standing.h; // ride the pan as the beam tilts
-      if (onGround && standing && !over(standing)) { standing = null; onGround = false; vy = 0; airJumps = 1; } // walked off a platform
+      if (onGround && standing && (standing.kind === 'pulse' || standing.kind === 'glide')) y = standing.h; // ride a falling pulse or a ramp
+      if (onGround && standing && !over(standing)) { const launch = standing.kind === 'glide'; standing = null; onGround = false; vy = launch ? 430 : 0; airJumps = 1; } // walked off a platform (a ramp launches you)
       if (!onGround) {
         let gm = foldHeld() && vy < 250 ? 1.9 : 1;
         if (triOn() && vy < 0 && !foldHeld()) gm = .5;
@@ -2160,7 +2238,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (p.got) { p.t += dt; continue; }
         if (hitBox(p.x - dist, p.h, 7)) {
           p.got = true; partials++; pts += 10;
-          levelPartials++; sfxPartial(levelPartials);
+          levelPartials++; if (rhythmT > 0) { levelPartials++; partials++; } sfxPartial(levelPartials);
           if (gated()) {
             const rem = NEED[level] - levelPartials;
             if (rem > 0) showPop(rem <= 3 ? `ЕЩЁ ${rem}` : `${levelPartials}/${NEED[level]}`, COL.ch4);
@@ -2202,7 +2280,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (state === 'play' && hit && !god && invulnT <= 0) {
           if (power && (power.type === 'mdr' || (power.type === 'cpx' && !hit.ground))) breakOb(hit);
           else if (boss && boss.B.kind === 'fm' && !boss.dead && fmIndex > 0) loseIndex();
-          else takeHit(hit.label);
+          else { const wasGod = god; takeHit(hit.label); if (hit.kind === 'echo' && !wasGod) shadow = { t: 0, x: HERO_X - 90, y: hy(), hist: [] }; } // an echo leaves a shadow on your tail
         }
       }
     } else if (state === 'dying') {
@@ -2284,7 +2362,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   let shX = 0, shY = 0;
   const text = (s, wx, wy, color, align = 'center', px = fontPx(), weight = 500) =>
-    textScreen(s, (wx + shX) * scale, (wy + offY + shY) * scale, color, align, px, weight);
+    textScreen(s, (wx + shX) * scale, ch / 2 + ((wy + offY + shY) * scale - ch / 2) * flipK, color, align, px, weight);
   const NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
   function noteName() {
     const m = 57 + currentSemi() + octave;
@@ -2716,7 +2794,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     shX = shake > 0 ? R(-2, 2) : 0; shY = shake > 0 ? R(-2, 2) : 0;
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * scale * shX, dpr * scale * (offY + shY));
+    const Hc = H / 2; // phase invert: mirror the world about the screen's middle (flipK eases between 1 and −1)
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale * flipK, dpr * scale * shX, Hc + (dpr * scale * (offY + shY) - Hc) * flipK);
     const TOP = -offY - 4;
     const tnow = performance.now() / 1000;
 
@@ -2764,20 +2843,35 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const ox = ob.x - dist;
       if (ox > WORLD_W + 20 || ox + ob.w < -20) continue;
       const p = [], N = ob.samples;
-      const a = ob.broken ? Math.max(0, 1 - ob.bt / .45) : 1, jit = ob.broken ? ob.bt * 30 : 0;
+      const a = (ob.broken ? Math.max(0, 1 - ob.bt / .45) : 1) * (ob.copy ? Math.pow(.62, ob.copy) : 1), jit = ob.broken ? ob.bt * 30 : 0;
       const J = () => jit ? R(-jit, jit) : 0;
-      const c = ob.enemy ? COL.red : ob.ground ? COL.ch2 : COL.ch3;
+      const c = ob.enemy || ob.monster ? COL.red : ob.ground ? COL.ch2 : COL.ch3;
       if (ob.gate) {
         const ga = ob.used ? .25 : 1, top = GROUND - ob.h, mx = ox + ob.w / 2, my = GROUND - ob.h / 2;
         ctx.save(); ctx.setLineDash([lw(5), lw(4)]); ctx.strokeStyle = COL.fx; ctx.globalAlpha = .6 * ga; ctx.lineWidth = lw(1.4);
         ctx.beginPath(); ctx.moveTo(ox, GROUND); ctx.lineTo(ox, top); ctx.lineTo(ox + ob.w, top); ctx.lineTo(ox + ob.w, GROUND); ctx.stroke(); ctx.restore();
         fillPoly([ox, GROUND, ox, top, ox + ob.w, top, ox + ob.w, GROUND], COL.fx, .06 * ga);
         if (ob.gate === 'rect') trace([mx - 7, my - 8, mx - 7, my + 8, mx + 6, my, mx - 7, my - 8, mx + 6, my, mx + 6, my - 8, mx + 6, my + 8], COL.fx, 1.6, ga); // diode
+        else if (ob.gate === 'pinv') { const q = []; for (let i = 0; i <= 30; i++) { const a = i / 30 * Math.PI * 2; q.push(mx + Math.cos(a) * 8, my + Math.sin(a) * 8); } trace(q, COL.fx, 1.6, ga); trace([mx - 6, my + 10, mx + 6, my - 10], COL.fx, 1.6, ga); } // Ø — phase
+        else if (ob.gate === 'snh') trace([mx - 8, my + 7, mx - 8, my + 2, mx - 3, my + 2, mx - 3, my - 3, mx + 2, my - 3, mx + 2, my + 4, mx + 8, my + 4], COL.fx, 1.6, ga); // held steps
         else { const q = []; for (let i = 0; i <= 30; i++) { const a = i / 30 * Math.PI * 2; q.push(mx + Math.cos(a) * 8, my + Math.sin(a) * 8); } trace(q, COL.fx, 1.6, ga); trace([mx - 5.6, my - 5.6, mx + 5.6, my + 5.6], COL.fx, 1.6, ga); trace([mx + 5.6, my - 5.6, mx - 5.6, my + 5.6], COL.fx, 1.6, ga); }
         if (!ob.used) {
           if (!MOB) text(ob.label, mx, top - 11, COL.fx);
           if (ob.showHint) text(ob.showHint, mx, top - 27, COL.ch1, 'center', fontPx(), 600);
         }
+        continue;
+      }
+      if (ob.band) { // DC offset: a digital snake — square segments riding a drifting offset, a head with pixel eyes
+        const segs = 8, sw2 = ob.w / segs;
+        for (let i = 0; i < segs; i++) {
+          const sx = ox + i * sw2, wig = Math.sin(phase * 1.3 + i * .9) * 2.2, yb = GROUND - ob.off + wig, yt = yb - ob.h * (i ? .78 : 1);
+          const q = [sx + 1, yb, sx + 1, yt, sx + sw2 - 1, yt, sx + sw2 - 1, yb, sx + 1, yb];
+          fillPoly(q, c, i ? .12 : .3); trace(q, c, i ? 1.2 : 1.7, a);
+          if (!i) { ctx.save(); ctx.fillStyle = '#ffffff'; ctx.fillRect(sx + 2, yt + 3, 1.6, 1.6); ctx.fillRect(sx + 4.6, yt + 3, 1.6, 1.6); ctx.restore(); }
+        }
+        if (ob.off > 2) trace([ox + 4, GROUND, ox + ob.w - 4, GROUND], c, .8, .25); // its shadow on the ground
+        if (!MOB) text(ob.label, ox + ob.w / 2, GROUND - ob.off - ob.h - 11, c);
+        if (ob.showHint) text(ob.showHint, ox + ob.w / 2, GROUND - ob.off - ob.h - 27, COL.ch1, 'center', fontPx(), 600);
         continue;
       }
       if (ob.ground) {
@@ -2851,6 +2945,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         const q = pf.trap ? [xx, py, xx, py + 11, xx + pf.w, py + 11, xx + pf.w, py] : [xx, py + 11, xx, py, xx + pf.w, py, xx + pf.w, py + 11]; // traps hang upside down
         if (!pf.used) fillPoly([xx, py, xx + pf.w, py, xx + pf.w, py + 11, xx, py + 11], pf.trap ? COL.red : COL.ch4, .14);
         trace(q, c, pf.used ? 1.2 : 2, pf.used ? .6 : 1); // one square pulse: up, across, down
+      } else if (pf.kind === 'glide') { // a ramp: rails on struts, chevrons pointing up the slope
+        const x0 = px, x1 = px + pf.w, y0 = GROUND - pf.h0, y1 = GROUND - pf.h1;
+        trace([x0, y0, x1, y1], COL.ch4, 2);
+        for (let k = 1; k <= 3; k++) { const u = k / 4, sx = lerp(x0, x1, u), sy = lerp(y0, y1, u); trace([sx, sy, sx, GROUND], COL.ch4, .8, .35); trace([sx - 4, sy + 5, sx, sy + 1, sx + 4, sy + 5 - 3], COL.ch4, 1, .6); }
+        if (px > HERO_X) { text('↗ glide', (x0 + x1) / 2, Math.min(y0, y1) - 14, COL.ch4, 'center', fontPx(), 600); }
       } else {
         const lit = fmLit(pf), c = COL.math, q = [px, py, px + pf.w, py, px + pf.w, py + 9, px, py + 9, px, py];
         trace([px + pf.w / 2, py + 9, px + pf.w / 2, GROUND], c, 1, .22);
@@ -2944,7 +3043,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const flick = rem < 1.3 && Math.floor(rem * 10) % 2 === 0;
       if (!flick) { shape = power.type; hc = powerColor(power.type, tnow); }
     }
-    const cy = GROUND - y - heroAmp() + hsy;
+    const cy = GROUND - hy() - heroAmp() + hsy;
     const hp = [];
     for (let i = 0; i <= HERO_W; i += .6) {
       const u = i / HERO_W, th = 2 * Math.PI * cycles * u - phase;
@@ -2955,6 +3054,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       hp.push(HERO_X + hsx + i, cy - s);
     }
     trace(hp, hc, 2.1, invulnT > 0 && Math.floor(invulnT * 14) % 2 ? .25 : 1);
+    if (shadow && state === 'play') { // the echo's shadow: you, half a second late, closing in
+      const scy = GROUND - shadow.y - heroAmp(), q = [], fade = Math.min(1, (7 - shadow.t) / .8);
+      for (let i = 0; i <= HERO_W; i += 1) { const u = i / HERO_W, win = Math.sin(Math.PI * u); q.push(shadow.x + i, scy - Math.sin(2 * Math.PI * 1.5 * u - phase + 1) * heroAmp() * win); }
+      trace(q, 'rgba(244,225,90,.5)', 1.6, .55 * fade);
+    }
     if (fx.ring > 0 && state === 'play') { // the other sideband
       const gx = ghostX(), gcy = GROUND - ghostH() - 15, q = [];
       for (let i = 0; i <= HERO_W; i += .8) {
@@ -3016,6 +3120,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     let fxRow = 1.9;
     if (fx.rect > 0) { textScreen(`RECT ${fx.rect.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
     if (fx.ring > 0) { textScreen(`RING ${fx.ring.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
+    if (fx.inv > 0) { textScreen(`INVERT ${fx.inv.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
+    if (fx.snh > 0) { textScreen(`S&H ${fx.snh.toFixed(1)}s`, cw - pad, pad + fp * fxRow, COL.fx, 'right'); fxRow += 1.3; }
     if (foldAmt > .05) textScreen(`FOLD ×${drive.toFixed(1)}`, cw - pad, pad + fp * fxRow, COL.ch3, 'right');
     if (power) {
       const rem = Math.max(0, power.dur - power.t), c = powerColor(power.type, tnow), bw = Math.min(110, cw * .22);
@@ -3112,7 +3218,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       for (let k = before; k < Math.min(Math.floor(storyQ.shown), line[1].length); k++) {
         if (k % 2 === 0 && /[^\s.,!?…—–:;«»()-]/.test(line[1][k])) keyClick(line[0]); // a key click every other letter
       }
-    } else if (state !== 'paused') { tutTick(dt); update(dt * slow); }
+    } else if (state !== 'paused') { tutTick(dt); update(dt * slow * (power && power.type === 'tst' ? .72 : 1)); }
     musicFilter(dt);
     render(state === 'paused' ? .0001 : dt);
     postFx();

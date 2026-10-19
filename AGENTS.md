@@ -115,6 +115,24 @@ Animated ones read `beatPos` (synced to audio). Effect gates (`gate:'rect'|'ring
 (`applyFx`, state in `fx`). Tall walls never come twice in a row and leave room to land. Rectifier gates are rationed
 (`rectAt`). **To add one:** a `case` in `makeOb`, optionally a `hint`, then add the kind to a level's pool in `LEVELS`.
 
+Special kinds (all terms stay in English on screen):
+
+| kind | what it does |
+|---|---|
+| `echo` | echo delay: the obstacle plus two fading copies one beat apart (`copy`, `span`). Hitting it leaves a `shadow` — you from 0.45 s ago, closing in from behind; it bites for 2 partials, lasts 7 s |
+| `gcomp` | gate compressor: a tall wall squashed on every beat, recovering between — jump when it's low |
+| `reso` | resonant peak: a Lorentzian spike that breathes over two beats; while on screen the music low-pass closes and resonates with it (`musicFilter`) |
+| `nfloor` | noise floor (`zone:true`): a hissing strip on the ground — hurts only if you're standing on it; hiss rises as you approach (`noiseBedG`) |
+| `fbk` | feedback (`monster:true`, red): starts tiny, grows exponentially once on screen, whines louder and higher (`fbOsc`/`fbG`) — jump it early |
+| `dcs` | DC offset (`band:true`): a digital segmented snake whose body rides an offset drifting up and down over a bar — pass under or over |
+| gates `pinv`, `snh` | phase invert flips the world upside down for 6 s (`flipK`, mirrored transform and world text) and thins the music (`musicHP`); sample & hold freezes the drawn/colliding Sine on each 8th note for 5 s (`hy()`, `snhY`) and crushes the bits |
+
+All four gates (`rect`, `ring`, `pinv`, `snh`) share the `GATES` rationing. Glide ramps (`platforms`, `kind:'glide'`) spawn in
+wide gaps: step on from the ground, ride up with portamento (`osc.detune` up to +700 ct) and a speed boost, get launched
+off the end. **Time stretch** (`tst`) is a capsule offered at ≥ 118 BPM: 6 s at 0.72× world time and 0.75× tempo
+(`bpmNow` vs `bpmBase`). **Rhythm bonus:** a jump within 9% of a beat (`rhythmCheck`, judged on `heardBeat`) doubles
+partials picked up for 1.6 s.
+
 ### Partials = lives, and the Sonic-style pace
 Each level starts with `START_PARTIALS = 4`. A hit (`takeHit`) costs `HIT_COST = 4`; they scatter and can be caught
 back; 1.6 s invulnerability; a hit with none left ends the run. After a hit the toast says: 0 left — «следующий удар — последний», 1–4 — «осталось N · осторожно», more — just «осталось N». The same partials open the boss gate (`NEED[level]`).
@@ -202,6 +220,7 @@ Phones: Playwright context with `has_touch`, `is_mobile`, 390×844 and 844×390.
 - Sequencer: `SEQ_RNDS` (patterns per round), `SEQ_NEED`, window `0.4` of a step in `seqJudge`.
 - Levels: `LEVELS[i]` (`bpm`, `speed0`, `len`, `pTall`, `pCeil`, pools), `NEED`, the speed curve in `update` (`+140` at the gate).
 - Lives: `START_PARTIALS`, `HIT_COST`.
+- New obstacles: `GATES` spacing (3000) in `spawn`, glide ramp chance (`.09`), `fbk` growth (`8·e^(t/1.05)`, cap 150), `dcs` offset 34, shadow lifetime/cost, rhythm window `.09`, time-stretch factors `.72`/`.75`.
 
 ## Known gaps and ideas
 
@@ -209,4 +228,5 @@ Phones: Playwright context with `has_touch`, `is_mobile`, 390×844 and 844×390.
 - Legacy, unused: `updateFM`, `allyFM`, `fireFM`, `loseIndex`, `fmLit`, `setBattleFM`, `idxTokens`, platforms `kind:'fm'`,
   `harmTokens`, empty `flash()`, `BOSSES.*.atk` on bosses with `noAtk`. Safe to remove with care.
 - The page copy in `<footer>` / `.deck` is hidden on every device now; it's kept as accessible text and for `#test`.
+- Planned: mini-bosses (Compressor, Arpeggiator, Limiter, Vocoder) between levels; Wavetable stays the final boss.
 - Ideas: a mid-level checkpoint; a "stun" instead of a hit for the ring-mod sideband; a final scene after Wavetable.
