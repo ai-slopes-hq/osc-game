@@ -121,7 +121,7 @@ Special kinds (all terms stay in English on screen):
 
 | kind | what it does |
 |---|---|
-| `echo` | echo delay: the obstacle plus two fading copies one beat apart (`copy`, `span`). Hitting it leaves a `shadow` — you from 0.45 s ago, closing in from behind; it bites for 2 partials, lasts 7 s |
+| `echo` | echo delay: the obstacle plus two fading copies one beat apart (`copy`, `span`), joined by dashed delay-tap arcs. Hitting it leaves a `shadow` — you from 0.45 s ago, closing in from behind; it bites for 2 partials, lasts 7 s |
 | `gcomp` | gate compressor: a tall wall squashed on every beat, recovering between — jump when it's low |
 | `reso` | resonant peak: a Lorentzian spike that breathes over two beats; while on screen the music low-pass closes and resonates with it (`musicFilter`) |
 | `nfloor` | noise floor (`zone:true`): a hissing strip on the ground — hurts only if you're standing on it; hiss rises as you approach (`noiseBedG`) |

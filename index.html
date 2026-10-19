@@ -3408,6 +3408,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         }
         continue;
       }
+      if (ob.kind === 'echo' && !ob.copy && ob.span) { // delay taps: dashed arcs from the hit to its two repeats, one beat apart
+        const bd = (ob.span - ob.w) / 2, x0 = ox + ob.w / 2;
+        ctx.save(); ctx.setLineDash([lw(4), lw(4)]); ctx.strokeStyle = c; ctx.lineWidth = lw(1.2);
+        for (let k = 1; k <= 2; k++) { const y0 = GROUND - ob.h - 6, x1 = x0 + k * bd, y1 = GROUND - ob.h * Math.pow(.72, k) - 6;
+          ctx.globalAlpha = .55 * Math.pow(.7, k - 1); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, Math.min(y0, y1) - 26, x1, y1); ctx.stroke(); }
+        ctx.restore();
+      }
       if (ob.band) { // DC offset: a digital snake — square segments riding a drifting offset, a head with pixel eyes
         const segs = 8, sw2 = ob.w / segs;
         for (let i = 0; i < segs; i++) {
