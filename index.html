@@ -464,9 +464,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['lim', 'Ноль дэ-бэ… уже не предел…'],
         ['mdr', 'Слышишь, как стало просторно? Дальше фригийский лад. Там Треугольник.'],
       ] },
-    arp: { who:'arp', hp:3, kind:'arp', mini:true, noAtk:true, morph:'sine', y:-160, tip:'по ступенькам, не касаясь земли',
+    arp: { who:'arp', hp:4, kind:'arp', mini:true, noAtk:true, morph:'sine', y:-160, tip:'по ступенькам, не касаясь земли',
       intro: [
-        ['arp', 'Аккорд? Скучно. Я разбираю его по нотам: вверх, вниз, вверх-вниз.'],
+        ['arp', 'Аккорд? Скучно. Я разбираю его по нотам: вверх, вниз, вверх-вниз, вразброс.'],
         ['sine', 'Ноты я и сам умею.'],
         ['arp', 'Пройди мои лесенки, не касаясь земли. Сорвёшься — сначала.'],
       ],
@@ -1731,7 +1731,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   // Вокодер (ambient): he asks for a vowel; catch that one, a wrong one gives him back a level.
   const VOWELS = ['А', 'О', 'У', 'И', 'Э'];
   const FORMANT = { 'А': [800, 1200], 'О': [500, 900], 'У': [320, 800], 'И': [300, 2300], 'Э': [550, 1800] };
-  const LIM_CEIL = 150, ARP_MODES = [['UP', [22, 46, 70, 94]], ['DOWN', [94, 70, 46, 22]], ['UP·DOWN', [22, 50, 78, 50, 22]]];
+  const LIM_CEIL = 150, ARP_MODES = [['UP', [20, 44, 68, 92]], ['DOWN', [84, 60, 36, 12]], ['UP·DOWN', [20, 48, 76, 48, 20]], ['RANDOM', [20, 68, 36, 84, 52]]];
+  // The Arpeggiator slows the run to ARP_SPEED and lays each step exactly one jump further than the last: a jump from
+  // the middle of a step lands in the middle of the next (flight time for that rise/drop × speed), with ±half a step to spare.
+  const ARP_SPEED = 250, ARP_W = 84;
+  const jumpAir = dh => (JUMP_V + Math.sqrt(Math.max(0, JUMP_V * JUMP_V - 2 * GRAV * dh))) / GRAV;
   function vowelSfx(v, semi = 0, type = 'sawtooth', vol = .3) {
     if (!ac) return;
     const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
@@ -1771,8 +1775,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     } else if (k === 'arp') {
       const live = platforms.some(pf => pf.kind === 'arp' && !pf.gone && pf.x + pf.w - dist > -10);
       if (!live) { // lay the next staircase (the same one again after a slip)
-        const [, hs] = ARP_MODES[Math.min(b.round, ARP_MODES.length - 1)], x0 = dist + WORLD_W + 40;
-        hs.forEach((h, i) => platforms.push({ kind: 'arp', idx: i, x: x0 + i * 165, w: 62, h }));
+        const [, hs] = ARP_MODES[Math.min(b.round, ARP_MODES.length - 1)];
+        let x = dist + WORLD_W + 40;
+        hs.forEach((h, i) => { if (i) x += ARP_SPEED * jumpAir(h - hs[i - 1]); platforms.push({ kind: 'arp', idx: i, x, w: ARP_W, h }); });
         b.got = 0; b.slip = false;
       }
       if (onGround && !standing && b.got > 0 && !b.slip) { b.slip = true; toast = { t: 0, text: 'сорвался · ещё раз', color: COL.red }; tones([7, 0], 'square', .05, .05, .12); }
@@ -2377,7 +2382,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (gated() && !bossPending) { // closer to the gate = faster; losing partials eases you back down
         const L = LEVELS[level], tgt = lerp(L.speed0, Math.min(SPEED_MAX, L.speed0 + 140), clamp(levelPartials / NEED[level], 0, 1));
         speed += (tgt - speed) * (1 - Math.exp(-dt * .7));
-      } else speed = Math.min(SPEED_MAX, speed + (boss ? 0 : ACCEL) * dt);
+      } else if (boss && boss.B.kind === 'arp' && !boss.dead) speed += (ARP_SPEED - speed) * (1 - Math.exp(-dt * 1.5)); // his steps are laid for this pace
+      else speed = Math.min(SPEED_MAX, speed + (boss ? 0 : ACCEL) * dt);
       dist += speed * dt; pts += speed * dt / 48;
       buffer -= dt;
       invulnT = Math.max(0, invulnT - dt);
@@ -3421,7 +3427,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const b = boss, k = b.B.kind, done = (b.max - b.hp) / b.max;
       if (k === 'comp') bossCallout(b.warn ? '↓ НА РАЗ' : 'ЛОВИ ПИКИ', `${b.max - b.hp}/${b.max}`, b.warn ? COL.red : COL.ch4, done);
       else if (k === 'lim') bossCallout(b.lit ? 'БЕЙ!' : '2 · 4', `${b.max - b.hp}/${b.max}`, b.lit ? COL.ch4 : COL.red, done);
-      else if (k === 'arp') bossCallout(ARP_MODES[Math.min(b.round, 2)][0], `ступенька ${b.got}/${ARP_MODES[Math.min(b.round, 2)][1].length}`, b.slip ? COL.red : COL.ch4, done);
+      else if (k === 'arp') bossCallout(ARP_MODES[Math.min(b.round, 3)][0], `ступенька ${b.got}/${ARP_MODES[Math.min(b.round, 3)][1].length}`, b.slip ? COL.red : COL.ch4, done);
       else if (k === 'voc') bossCallout(`«${b.want}»`, `${b.max - b.hp}/${b.max}`, COL.ch4, done);
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1, не 0', COL.ch4, boss.bits / 16);

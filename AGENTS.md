@@ -187,7 +187,7 @@ Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the leve
 |---|---|---|
 | 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6) |
 | 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles |
-| 6 | Arpeggiator `arp` | Staircases of note platforms UP / DOWN / UP·DOWN (`ARP_MODES`): land on every step in order without touching the ground; a slip replays it |
+| 6 | Arpeggiator `arp` | Staircases of note platforms UP / DOWN / UP·DOWN / RANDOM (`ARP_MODES`): land on every step in order without touching the ground; a slip replays it. The run slows to `ARP_SPEED` and each step is laid one jump's flight (`jumpAir(dh)` × speed) after the last, so a jump from anywhere on a step lands on the next |
 | 8 | Vocoder `voc` | He asks for a vowel (`VOWELS`, formant synth `vowelSfx`); catch that one, a wrong one gives him a level back |
 
 **To add a boss:** an entry in `BOSSES`, `boss:` on a level, init in `spawnBoss`, an `update*` branch in `updateBoss`,
