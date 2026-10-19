@@ -147,7 +147,7 @@ where the move works; a card says what to press; the press performs the move. `b
 the obstacle profile to find that point. Done steps are stored in `osc-adv-tut`.
 
 ### Levels
-Nine levels (`LEVELS`), each with its own mode, genre (`band`), background (`scene`) and obstacle pool. Big-boss levels
+Ten levels (`LEVELS`), each with its own mode, genre (`band`), background (`scene`) and obstacle pool. Big-boss levels
 alternate with genre levels that end in a mini-boss; **Wavetable is always the last level and the final boss.**
 
 | # | Mode | Genre (`band`) | Scene | Signature obstacles | Boss |
@@ -160,7 +160,8 @@ alternate with genre levels that end in a mini-boss; **Wavetable is always the l
 | 6 | G Dorian | breaks (electro-breaks) | `spiro` | DC offset snake, S&H | *Arpeggiator* |
 | 7 | F Lydian | glitch | `fractal` | all the digital gates mixed | Sequencer |
 | 8 | C Ionian | ambient (no drums, a breather) | `aurora` | sparse, resonant peaks, phase invert | *Vocoder* |
-| 9 | F# Aeolian | modern (progressive house) | `wt` | everything (`ALL_G`/`ALL_C`) | Wavetable |
+| 9 | D Aeolian | dub (dub techno: minor-7 stabs into echo and a convolution reverb `rvbIn`) | `room` | echo delay, feedback, compressor | *Reverberator* |
+| 10 | F# Aeolian | modern (progressive house) | `wt` | everything (`ALL_G`/`ALL_C`) | Wavetable |
 
 **Approach effects.** Every boss level builds up to its boss gradually with `apS` (eased `levelPartials / NEED`, 1 when
 the gate is open; `trackApproach`, `apBand(band)`), so the boss is heard and seen coming:
@@ -175,9 +176,10 @@ the gate is open; `trackApproach`, `apBand(band)`), so the boss is heard and see
 | 6 → Arpeggiator | the melody's gaps fill with chord arpeggios, 8ths then 16ths (in `playStep`) |
 | 7 → Sequencer | the glitch rhythm gains layers: 16th hats, extra kicks, rolls, ticks, then his step clock (`levelBand` glitch) |
 | 8 → Vocoder | the Sine goes through two formant band-passes, a vowel per bar (`vocDry`/`vocWet`/`vocF`) |
-| 9 → Wavetable | the melody's FM index rises; the hero's wave morphs along the wavetable (`heroWt`) |
+| 9 → Reverberator | phosphor trails stretch (the fade slows from 70 to 14/s) and the Sine drowns in reverb (`rvbSine`) |
+| 10 → Wavetable | the melody's FM index rises; the hero's wave morphs along the wavetable (`heroWt`) |
 
-Free play runs on level 9; mode capsules switch mode, genre and scene together (`MODES[i].band/.scene`, `bandNow()`).
+Free play runs on level 10; mode capsules switch mode, genre and scene together (`MODES[i].band/.scene`, `bandNow()`).
 Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level doesn't break the curve.
 
 ### Bosses
@@ -189,7 +191,7 @@ Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level do
 | 3 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
 | 5 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
 | 7 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm once), then every bar is REPEAT (tap it back — every tap counts, even mid-air) until it's right; the rhythm stays shown as a reference row above his steps, so you can sit a bar or two out and come in. Wrong → just try the next bar, nothing lost; right → a rest bar shows the next rhythm, then his call. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
-| 9 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
+| 10 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
 
 
 Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the level's band keeps playing under them):
@@ -199,6 +201,7 @@ Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the leve
 | 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6) |
 | 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles |
 | 6 | Arpeggiator `arp` | Staircases of note platforms UP / DOWN / UP·DOWN / RANDOM (`ARP_MODES`): land on every step in order without touching the ground; a slip replays it. The run slows to `ARP_SPEED` and each step is laid one jump's flight (`jumpAir(dh)` × speed) after the last, so a jump from anywhere on a step lands on the next |
+| 9 | Reverberator `rvb` | Pads come by (`kind:'rvbpad'`); land on one and it throws your reflection at him, aimed ±24°. A miss bounces off the walls, ceiling and floor (`updateRvb`, `b.shots`), turns red and hurts you (2 partials) until it decays; his RT60 (`b.decay`, 1.3–3.2 s) drifts — long decay, more bounces. Run slows to `ARP_SPEED` |
 | 8 | Vocoder `voc` | He asks for a vowel (`VOWELS`, formant synth `vowelSfx`); catch that one, a wrong one gives him a level back |
 
 **To add a boss:** an entry in `BOSSES`, `boss:` on a level, init in `spawnBoss`, an `update*` branch in `updateBoss`,
@@ -242,11 +245,11 @@ animates it with long events (run start fade-in, gate/boss sweeps, muffled dialo
 `drawScenery`, style per level (`LEVELS[i].scene`): `trees` function trees (rose, bell, |x| fir, sinc willow), `tunnel` a
 techno tunnel pulsing on the beat, `graph` graph networks over a quantised ridge, `phyllo` golden-angle sunflowers,
 `liss` drifting Lissajous figures, `spiro` turning spirographs, `fractal` fractal trees under a Koch ridge, `aurora`
-summed-sine curtains and stars, `wt` a 3D wavetable.
+summed-sine curtains and stars, `room` a room in perspective with a ray bouncing off its walls, `wt` a 3D wavetable.
 Hidden in boss fights.
 
 ### Storage (`localStorage` via `store`)
-`osc-adv-best` (record), `osc-adv-unlocked9` (the old five-level `osc-adv-unlocked` maps i → 2i), `osc-adv-victory`, `osc-adv-muted`, `osc-adv-god`, `osc-adv-tut`.
+`osc-adv-best` (record), `osc-adv-unlocked10` (older keys migrate: nine levels — Wavetable 8 → 9; five levels — i → 2i, Wavetable → 9), `osc-adv-victory`, `osc-adv-muted`, `osc-adv-god`, `osc-adv-tut`.
 
 ### Analytics, headers, security
 Vercel Web Analytics (`/_vercel/insights/script.js`) and Speed Insights (`/_vercel/speed-insights/script.js`) are
@@ -260,7 +263,7 @@ to the CSP**, or browsers will block it.
 
 `tools/smoke.py` shows the pattern: it injects `window.T = { ev: (c) => eval(c) }` before `  showTitle();` so a test
 can run code inside the game's closure: `T.ev("testJump('b3')")`, `T.ev('storySkip()')`, `T.ev('god = true')`.
-Useful entry points: `testJump('op'|'l0'..'l8'|'b0'..'b8'|'free')`, `catchBit({val:1})`, `catchHarm({k:9})`,
+Useful entry points: `testJump('op'|'l0'..'l9'|'b0'..'b9'|'free')`, `catchBit({val:1})`, `catchHarm({k:9})`,
 `landOn(pf)`, `takeHit('x')`, `seqRound(boss, 1)`.
 
 **Balance by bot:** a `setInterval` that only looks at what a player sees and calls `pressJump()`. Compare a precise

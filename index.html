@@ -349,6 +349,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     lim: { name:'Лимитер', color:COL.red, wave:'lim', digital:true, pitch:-3, chip:'0 dBFS' },
     arp: { name:'Арпеджиатор', color:COL.red, wave:'arp', digital:true, pitch:9, chip:'UP · DOWN' },
     voc: { name:'Вокодер', color:COL.red, wave:'voc', digital:true, pitch:0, chip:'16 BANDS' },
+    rvb: { name:'Ревербератор', color:COL.red, wave:'rvb', digital:true, pitch:4, chip:'RT60' },
   };
   // Opening scene. Third field = stage action run when the line starts.
   const OPENING = [
@@ -439,7 +440,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['mdr', 'Углов у меня так и не будет. И не надо.'],
         ['tri', 'Танцполы переживут. Я снова тихий — и мне нравится.'],
         ['sine', 'Развёртка свободна. Сыграем?'],
-        ['cpx', 'Сколько захочешь. Лови золотые капсулы — ладов на свете больше, чем девять.'],
+        ['cpx', 'Сколько захочешь. Лови золотые капсулы — ладов на свете больше, чем десять.'],
       ] },
     // Mini-bosses: one per genre level. They keep the level's own music playing (mini:true).
     comp: { who:'comp', hp:6, kind:'comp', mini:true, noAtk:true, morph:'sine', y:-150, tip:'↓ на раз · лови пики',
@@ -485,12 +486,23 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['cpxr', 'Синус… Я в самом конце развёртки. Он ждёт тебя.'],
         ['sine', 'Иду.'],
       ] },
+    rvb: { who:'rvb', hp:6, kind:'rvb', mini:true, noAtk:true, morph:'sine', y:-150, tip:'пады стреляют · уворачивайся от эха',
+      intro: [
+        ['rvb', 'Слышишь? Это ты. И снова ты. И ещё раз — тише.'],
+        ['sine', 'Это просто эхо. Оно затухнет.'],
+        ['rvb', 'Когда я захочу. Прыгай на пады — они бросят в меня твоё отражение. Промажешь — оно отскочит от стен в тебя.'],
+      ],
+      outro: [
+        ['rvb', 'Затухаю… минус шестьдесят… децибел…'],
+        ['mdr', 'Тишина. Слышишь, кто там дальше?'],
+        ['sine', 'Wavetable. Иду.'],
+      ] },
   };
 
   // ---------- levels ----------
   const ALL_G = ['square','saw','tri','tan','gauss','fft','am','redux','rect','ring','echo','gcomp','reso','nfloor','fbk','dcs','pinv','snh'];
   const ALL_C = ['sinc','floor','noise','inv','comb','sh'];
-  // Nine levels, a genre each: the big bosses' levels alternate with genre levels that end in a mini-boss; Wavetable is always last.
+  // Ten levels, a genre each: the big bosses' levels alternate with genre levels that end in a mini-boss; Wavetable is always last.
   // band — the level's genre (levelBand, MOTIFS, SYN); scene — the background (drawScenery); steps — the mode's scale.
   const LEVELS = [
     { key:'A', name:'A Aeolian', abbr:'aeol', scope:'A AEOL', bpm:104, speed0:230, len:6000, pat:[0,1,2,3,4,3,2,1], boss:'dsq', band:'pop', scene:'trees', steps:[0,2,3,5,7,8,10],
@@ -517,12 +529,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     { key:'C', name:'C Ionian', abbr:'ion', scope:'C ION', bpm:100, speed0:270, len:7000, pat:[0,1,2,3,4,3,2,1], band:'ambient', boss:'voc', scene:'aurora', steps:[0,2,4,5,7,9,11],
       prog:[{t:[3,7,10,14],r:-9},{t:[-4,0,3,7],r:-16},{t:[0,3,7,10],r:-12},{t:[-4,0,3,7],r:-16}], // Cmaj7 – Fmaj7 – Am7 – Fmaj7: drifting
       ground:['reso','gauss','tri','echo','nfloor','pinv','saw'], ceil:['sinc','inv','comb'], pTall:.1, pCeil:.26, intro:[] },
+    { key:'D', name:'D Aeolian', abbr:'aeol', scope:'D AEOL', bpm:118, speed0:290, len:8000, pat:[0,2,1,3,2,4,3,1], band:'dub', boss:'rvb', scene:'room', steps:[0,2,3,5,7,8,10],
+      prog:[{t:[-7,-4,0,3],r:-19},{t:[-7,-4,0,3],r:-19},{t:[1,5,8,12],r:-11},{t:[3,7,10,14],r:-9}], // Dm7 – Dm7 – Bbmaj7 – Cmaj7: dub-techno stabs
+      ground:['echo','echo','fbk','reso','gcomp','snh','tan','saw','nfloor'], ceil:['comb','comb','sinc','sh','inv'], pTall:.17, pCeil:.34, intro:[] },
     { key:'F#', name:'F# Aeolian', abbr:'aeol', scope:'F# AEOL', bpm:128, speed0:300, len:8500, pat:[0,1,2,3,4,3,2,1], boss:'wt', band:'modern', scene:'wt', steps:[0,2,3,5,7,8,10],
       prog:[{t:[-3,0,4],r:-15},{t:[-7,-3,0],r:-19},{t:[0,4,7],r:-12},{t:[-5,-1,2],r:-17}], // F#m – D – A – E: the progressive-house turn
       ground:ALL_G, ceil:ALL_C, pTall:.18, pCeil:.35, intro:[] },
   ];
   // Sonic-style gate: this many partials in the level before its boss opens (genre levels just run their length)
-  const NEED = [15, 16, 18, 19, 20, 21, 22, 22, 25];
+  const NEED = [15, 16, 18, 19, 20, 21, 22, 22, 24, 25];
   // Musical modes: the level modes, then one more that only free play has, picked up as a mode capsule.
   // steps = the scale's semitones, drawn on the capsule as a little staircase; band/scene follow the mode in free play
   const MODES = LEVELS.map(L => ({ name: L.name, scope: L.scope, pat: L.pat, prog: L.prog, steps: L.steps, band: L.band, scene: L.scene })).concat([
@@ -601,6 +616,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       case 'comp': return Math.sin(2 * th) * (.25 + .75 * (1 - Math.exp(-frac(th / (2 * Math.PI)) * 4)));          // pumped: squashed, then released
       case 'lim': return clamp(Math.sin(th) * 2.4, -.62, .62) / .62 * .8;                                           // flat brick-wall tops
       case 'arp': return Math.sin(th * 2 * [1, 1.5, 2, 3][Math.floor(frac(th / (4 * Math.PI)) * 4)]);              // one chord, note after note
+      case 'rvb': return Math.sin(3 * th) * Math.exp(-frac(th / (3 * Math.PI)) * 4);                               // an impulse, ringing out
       case 'voc': return Math.sin(th) * .55 + Math.sin(3 * th + 1) * .3 * Math.sin(.5 * th + t) + Math.sin(7 * th) * .15; // formants
       default: return Math.sin(th);
     }
@@ -621,7 +637,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let uni = [], oscG, uniK = 0, uniSet = -1, apS = 0, vocDry, vocWet, vocF = [], vocSet = -1, dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
+  let rvbIn, rvbSine, uni = [], oscG, uniK = 0, uniSet = -1, apS = 0, vocDry, vocWet, vocF = [], vocSet = -1, dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -731,6 +747,13 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       dubIn.connect(dl); dl.connect(tone); tone.connect(fb); fb.connect(dl); tone.connect(out); out.connect(padBus);
       dubIn.dl = dl;
     }
+    { // a convolution reverb from a generated impulse (2.8 s of decaying noise): dub stabs, the Reverberator, the approach
+      const len = Math.floor(ac.sampleRate * 2.8), ir = ac.createBuffer(2, len, ac.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / ac.sampleRate / .55); }
+      const cv2 = ac.createConvolver(), out = ac.createGain(); cv2.buffer = ir; out.gain.value = .5;
+      rvbIn = ac.createGain(); rvbIn.connect(cv2); cv2.connect(out); out.connect(music);
+      rvbSine = ac.createGain(); rvbSine.gain.value = 0; lp.connect(rvbSine); rvbSine.connect(rvbIn);
+    }
     osc.start(); fmOsc.start(); bass.start();
     setInterval(schedule, 20);
   }
@@ -793,6 +816,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
              [[0, 3, 1], [3, 3, 1], [6, 4, 1], [8, 5, 1], [11, 4, 1], [14, 3, 1]]],
     breaks: [[[0, 3, 1], [2, 5, 1], [3, 3, 1], [6, 4, 2], [10, 3, 1], [11, 2, 1], [14, 4, 2]],                // electro: syncopated robot riff
              [[0, 5, 1], [1, 4, 1], [3, 3, 2], [6, 2, 1], [8, 3, 1], [10, 5, 2], [13, 4, 1], [14, 3, 2]]],
+    dub: [[[4, 3, 2], [10, 2, 3]],                                                                            // two notes, lots of room
+          [[2, 4, 2], [8, 3, 6]]],
     reggae: [[[2, 2, 2], [4, 3, 2], [6, 4, 4], [12, 3, 3]],                                                   // laid back, behind the beat
              [[0, 4, 2], [3, 5, 1], [4, 4, 3], [8, 3, 2], [10, 2, 6]]],
     ambient: [[[0, 4, 10], [10, 3, 6]],                                                                       // long, slow, few notes
@@ -800,7 +825,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   };
   const MOTIF_AT = {}; // style → [bar A, bar B] → 16 slots
   for (const k in MOTIFS) MOTIF_AT[k] = MOTIFS[k].map(bar => { const a = Array(16).fill(null); for (const [st, i, l] of bar) a[st] = { i, len: l }; return a; });
-  const STYLE_WET = { pop: .16, chip: 0, trance: .28, glitch: .08, modern: .26, techno: .2, breaks: .12, reggae: .34, ambient: .5 }; // echo on the Sine per genre
+  const STYLE_WET = { pop: .16, chip: 0, trance: .28, glitch: .08, modern: .26, techno: .2, breaks: .12, reggae: .34, ambient: .5, dub: .45 }; // echo on the Sine per genre
   function chordTone(c, i) { // i-th tone counting up through the chord, lifted so the root sits from A3 up
     const tn = [...c.t].sort((a, b) => a - b); while (tn[0] < 0) for (let k = 0; k < tn.length; k++) tn[k] += 12;
     return tn[i % tn.length] + 12 * Math.floor(i / tn.length);
@@ -817,6 +842,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     modern: { a: .002, d: .17, s: .32, r: .22, gate: .8, fm: 1500, fmS: 280, fmD: .14, lp: 6800, lpS: 2200, lpD: .24 }, // bright EDM pluck lead
     techno: { a: .001, d: .09, s: .08, r: .1,  gate: .5, fm: 1200, fmS: 40,  fmD: .05, lp: 4200, lpS: 700,  lpD: .08 },  // a dark, short stab
     breaks: { a: .001, d: .07, s: .45, r: .05, gate: .75, fm: 2200, fmS: 700, fmD: .06, lp: 8000, lpS: 3000, lpD: .1 }, // a robotic square-ish lead
+    dub:    { a: .003, d: .22, s: .3,  r: .4,  gate: .6, fm: 600,  fmS: 60,  fmD: .15, lp: 3000, lpS: 1200, lpD: .25 },  // a soft pluck for the echo
     reggae: { a: .006, d: .2,  s: .55, r: .16, gate: .8, fm: 500,  fmS: 90,  fmD: .2,  lp: 3600, lpS: 1600, lpD: .3 },  // a round melodica-like voice
     ambient: { a: .35, d: .8,  s: .7,  r: 1.1, gate: 1,  fm: 140,  fmS: 30,  fmD: .8,  lp: 2600, lpS: 1500, lpD: 1.2 }, // slow swell, long tail
   };
@@ -982,6 +1008,20 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (k > .55 && !odd && s >= 13) for (let j = 0; j < 2; j++) noiseAt(t + j * d / 2, .025, 'bandpass', 2200 + s * 250 + j * 500, .18);
       if (k > .7 && s % 4 === 3) noiseAt(t, .02, 'bandpass', 5200, .12);
       if (k > .85) fmVoice(t, 2400, 1.4, 4, .02, s % 4 ? .015 : .03, .02, 'square', 5000); // his step clock on every 16th
+    } else if (style === 'dub') {     // dub techno: a soft 4/4, filtered minor-7 stabs drowned in echo and reverb, a deep sub, hiss
+      if (s % 4 === 0) kick(t, .42, 44);
+      if (s % 4 === 2) hat(t, .045, .07, 7500); else if (s % 2) hat(t, .012, .015, 9500);
+      if (s === 12 && bar % 2) noiseAt(t, .04, 'bandpass', 3000, .14);
+      if ([3, 10].includes(s) || (s === 14 && bar % 2)) { // the stab: one chord, its filter breathing over eight bars
+        const lpF = 500 + 900 * (.5 + .5 * Math.sin(bar * Math.PI / 4));
+        chordUp(c).forEach(x => { const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+          o.type = 'sawtooth'; o.frequency.value = hz(x); f.type = 'lowpass'; f.frequency.value = lpF; f.Q.value = 2;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.022, t + .004); g.gain.setTargetAtTime(0, t + .01, d * .5);
+          o.connect(f); f.connect(g); g.connect(padBus); g.connect(dubIn); g.connect(rvbIn); o.start(t); o.stop(t + d * 3); });
+      }
+      if (s === 0) dubIn.dl.delayTime.setValueAtTime(d * 3, t);
+      if (s === 0 || s === 7 || s === 10) bandVoice(t, c.r, 'sine', .17, d * (s ? 2 : 5), 300, .01);
+      if (s % 4 === 1 && Math.random() < .3) noiseAt(t, .01, 'highpass', 4000, .05); // dust
     } else if (style === 'techno') {  // techno: a heavy 4/4, a rumbling sub after each kick, an acid line, a long clap, a ride
       if (s % 4 === 0) { kick(t, .52, 40); duck(t, .2, .16); }
       if (s % 4 !== 0) bandVoice(t, c.r - 12, 'sine', s % 4 === 2 ? .11 : .06, d * .9, 180, .006);          // the rumble under the kick
@@ -1375,8 +1415,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   const seenCat = { ground: false, ceil: false, tall: false }, seenKind = new Set();
   let best = parseInt(store.get('osc-adv-best', '0'), 10) || 0;
   const staging = /-git-|localhost|127\.0\.0\.1/.test(location.hostname);
-  // 'osc-adv-unlocked9' counts nine levels; the old five-level key maps level i to 2i (the boss levels kept their order)
-  let unlocked = staging ? LEVELS.length - 1 : clamp(parseInt(store.get('osc-adv-unlocked9', ''), 10) || 2 * (parseInt(store.get('osc-adv-unlocked', '0'), 10) || 0), 0, LEVELS.length - 1);
+  // 'osc-adv-unlocked10' counts ten levels. Older keys: nine levels (Wavetable was 8, now 9), five levels (i → 2i, Wavetable 4 → 9).
+  const oldUnlock = () => { const u9 = parseInt(store.get('osc-adv-unlocked9', ''), 10); if (u9 >= 0) return u9 >= 8 ? u9 + 1 : u9;
+    const u5 = parseInt(store.get('osc-adv-unlocked', '0'), 10) || 0; return u5 >= 4 ? 9 : 2 * u5; };
+  let unlocked = staging ? LEVELS.length - 1 : clamp(parseInt(store.get('osc-adv-unlocked10', ''), 10) || oldUnlock(), 0, LEVELS.length - 1);
   const foldHeld = () => foldKey || foldPtr;
   let god = store.get('osc-adv-god', '0') === '1';
   const levelLen = () => level === LEVELS.length - 1 && victoryRun ? Infinity : LEVELS[level].len;
@@ -1480,7 +1522,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (B.kind === 'crush') setCrushBits(8);
     if (B.kind === 'harm') { harmTokens = []; shots = []; boss.shotT = 2; boss.lastShot = 'green'; setDubLayers(8); }
     if (B.kind === 'seq') seqRound(boss, 0);
-    if (B.mini) Object.assign(boss, { toks: [], tokT: 1.2, thr: 160, round: 0, got: 0, slip: false, want: pick(VOWELS) });
+    if (B.mini) Object.assign(boss, { shots: [], decay: 2, toks: [], tokT: 1.2, thr: 160, round: 0, got: 0, slip: false, want: pick(VOWELS) });
   }
   function bossAttack() {
     const B = boss.B, k = B.atk(boss.hp), wx = dist + boss.x - 20;
@@ -1747,6 +1789,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       oscG.gain.setTargetAtTime(1 / (1 + 1.4 * mix), t, .1);
       for (const u of uni) { u.g.gain.setTargetAtTime(mix / (1 + 1.4 * mix), t, .1); u.o.detune.setTargetAtTime(u.sg * det + glideC, t, .1); }
     }
+    if (rvbSine) rvbSine.gain.setTargetAtTime(.9 * apBand('dub'), ac.currentTime, .2); // the Reverberator's level: the Sine drowns in reverb
     const vk = apBand('ambient');
     if (Math.abs(vk - vocSet) >= .01) { vocSet = vk; const t = ac.currentTime; vocDry.gain.setTargetAtTime(1 - .6 * vk, t, .15); vocWet.gain.setTargetAtTime(1.8 * vk, t, .15); }
   }
@@ -1785,9 +1828,36 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (ph < .5) return lerp(lo, hi, 1 - Math.pow(1 - (ph - .25) / .25, 2));
     return hi;
   }
+  // Ревербератор: pads come by; land on one and it throws your reflection at him — aimed, but not exactly. A shot that
+  // misses bounces off the walls, the ceiling and the floor, turns red and can hit you, until it decays. His decay time
+  // (RT60) drifts: short — shots die fast, long — they keep bouncing (more chances to hit him, and you).
+  const RVB_CEIL = 6;
+  function rvbFire(pf) {
+    const b = boss, ox = pf.x - dist + pf.w / 2, oy = GROUND - pf.h - 6, by = GROUND + (b.B.y ?? -128);
+    const a = Math.atan2(by - oy, b.x - ox) + R(-.42, .42), v = 300;
+    b.shots.push({ x: ox, y: oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, e: 1, bounced: 0, t: 0 });
+    tones([24, 31], 'triangle', .02, .08, .25); if (ac) fmVoice(ac.currentTime, hz(19), 1, 2, .3, .05, .1, 'sine', 0, rvbIn);
+  }
+  function updateRvb(dt) {
+    const b = boss;
+    b.decay = 1.3 + 1.9 * (.5 + .5 * Math.sin(b.t * 2 * Math.PI / 9));
+    if (b.tokT <= 0) { platforms.push({ kind: 'rvbpad', x: dist + WORLD_W + 30, w: 54, h: pick([34, 54, 74]) }); b.tokT = R(1.3, 1.8); }
+    const by = GROUND + (b.B.y ?? -128) + Math.sin(b.t * 1.6) * 8, hx = HERO_X + HERO_W / 2, hTop = GROUND - hy() - 2 * heroAmp(), hBot = GROUND - hy();
+    for (const sh of b.shots) {
+      sh.t += dt; sh.e -= dt / b.decay; sh.x += sh.vx * dt; sh.y += sh.vy * dt;
+      let hitWall = false;
+      if (sh.x < 4 && sh.vx < 0) { sh.vx = -sh.vx; hitWall = true; } else if (sh.x > WORLD_W - 4 && sh.vx > 0) { sh.vx = -sh.vx; hitWall = true; }
+      if (sh.y < RVB_CEIL && sh.vy < 0) { sh.vy = -sh.vy; hitWall = true; } else if (sh.y > GROUND - 3 && sh.vy > 0) { sh.vy = -sh.vy; hitWall = true; }
+      if (hitWall) { sh.bounced++; if (ac && sh.e > .1) tones([12 + Math.round(sh.e * 12)], 'sine', 0, .05 * sh.e, .12); }
+      if (Math.hypot(sh.x - b.x, sh.y - by) < 28) { sh.e = 0; hitBoss(1, 'rvb'); continue; }
+      if (sh.bounced && sh.t > .3 && Math.abs(sh.x - hx) < HERO_W / 2 - 8 && sh.y > hTop - 4 && sh.y < hBot + 4) { sh.e = 0; takeHit('отражение', 2); }
+    }
+    b.shots = b.shots.filter(sh => sh.e > 0);
+  }
   function updateMini(dt) {
     const b = boss, k = b.B.kind, top = hy() + 2 * heroAmp();
     b.tokT -= dt;
+    if (k === 'rvb') { updateRvb(dt); return; }
     if (k === 'comp') {
       const ph = compPhase(); b.thr = compThr(ph); b.warn = ph >= .75 || ph < .25;
       if (top > b.thr + 2 && invulnT <= 0 && !god) { takeHit('порог компрессора'); toast = { t: 0, text: '↓ пригнись на раз', color: COL.red }; }
@@ -1841,6 +1911,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function drawMini(tnow) {
     const b = boss; if (!b || !b.B.mini || b.dead) return;
     const k = b.B.kind;
+    if (k === 'rvb') { // the room's edges and the reflections: green on the way out, red once they've bounced
+      trace([2, GROUND, 2, RVB_CEIL, WORLD_W - 2, RVB_CEIL, WORLD_W - 2, GROUND], COL.red, 1, .25);
+      for (const sh of b.shots) {
+        const c = sh.bounced ? COL.red : COL.ch4, r = 4 + 3 * sh.e, q = [];
+        for (let i = 0; i <= 18; i++) { const a = i / 18 * Math.PI * 2; q.push(sh.x + Math.cos(a) * r, sh.y + Math.sin(a) * r); }
+        fillPoly(q, c, .25 + .5 * sh.e); trace(q, c, 1.6, .4 + .6 * sh.e);
+      }
+      return;
+    }
     if (k === 'comp') { // the threshold: a red line across the screen, hatched above, flashing before it drops
       const yy = GROUND - b.thr, c = b.warn && Math.floor(tnow * 10) % 2 ? '#ffffff' : COL.red;
       fillPoly([0, -400, WORLD_W, -400, WORLD_W, yy, 0, yy], COL.red, b.thr < 60 ? .1 : .035);
@@ -1919,6 +1998,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function landOn(pf) {
     if (!boss || boss.dead || pf.used) return;
     if (pf.kind === 'arp') { arpLand(pf); return; }
+    if (pf.kind === 'rvbpad') { pf.used = true; rvbFire(pf); return; }
     if (pf.kind === 'pulse') {
       pf.used = true; pf.fallT = 0;
       const b = boss;
@@ -2110,7 +2190,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function levelUp() {
     pts += 100;
     level = Math.min(level + 1, LEVELS.length - 1);
-    if (level > unlocked) { unlocked = level; store.set('osc-adv-unlocked9', unlocked); }
+    if (level > unlocked) { unlocked = level; store.set('osc-adv-unlocked10', unlocked); }
     levelStart = dist; marker = null; levelSpawn = 0; levelPartials = START_PARTIALS; gateWarned = false; gateOpenSaid = false;
     levelStartPts = pts; levelStartPartials = partials;
     speed = LEVELS[level].speed0; curMode = level; startSweep(450, 3);
@@ -2418,7 +2498,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (gated() && !bossPending) { // closer to the gate = faster; losing partials eases you back down
         const L = LEVELS[level], tgt = lerp(L.speed0, Math.min(SPEED_MAX, L.speed0 + 140), clamp(levelPartials / NEED[level], 0, 1));
         speed += (tgt - speed) * (1 - Math.exp(-dt * .7));
-      } else if (boss && boss.B.kind === 'arp' && !boss.dead) speed += (ARP_SPEED - speed) * (1 - Math.exp(-dt * 1.5)); // his steps are laid for this pace
+      } else if (boss && (boss.B.kind === 'arp' || boss.B.kind === 'rvb') && !boss.dead) speed += (ARP_SPEED - speed) * (1 - Math.exp(-dt * 1.5)); // his steps are laid for this pace
       else speed = Math.min(SPEED_MAX, speed + (boss ? 0 : ACCEL) * dt);
       dist += speed * dt; pts += speed * dt / 48;
       buffer -= dt;
@@ -3066,6 +3146,17 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         });
         ctx.stroke();
       }
+    } else if (style === 'room') { // dub: a room in perspective, a ray bouncing off its walls and fading, an impulse-response skyline
+      ridge(u => GROUND - 16 - 34 * Math.exp(-(((u % 170) + 170) % 170) / 38) * Math.abs(Math.sin(u * .7)), .07);
+      const x0 = 250, y0 = 24, w = 200, h = 120, dx = 24, dy = 14;
+      sceneStroke(.07); ctx.strokeRect(x0, y0, w, h); ctx.strokeRect(x0 + dx, y0 + dy, w - 2 * dx, h - 2 * dy);
+      ctx.beginPath(); for (const [a, b2] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { ctx.moveTo(x0 + a * w, y0 + b2 * h); ctx.lineTo(x0 + dx + a * (w - 2 * dx), y0 + dy + b2 * (h - 2 * dy)); } ctx.stroke();
+      let px = x0 + w * .3, py = y0 + h * .6, ang = tnow * .15, e = 1;
+      for (let k = 0; k < 14 && e > .05; k++) { // a ray: travel to the nearest wall, reflect, lose energy
+        const vx = Math.cos(ang), vy = Math.sin(ang), tx = vx > 0 ? (x0 + w - px) / vx : (x0 - px) / vx, ty = vy > 0 ? (y0 + h - py) / vy : (y0 - py) / vy, tt = Math.min(tx, ty);
+        const nx = px + vx * tt, ny = py + vy * tt; sceneStroke(.03 + .12 * e); ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+        px = nx; py = ny; ang = tx < ty ? Math.PI - ang : -ang; e *= .78;
+      }
     } else if (style === 'aurora') { // ambient: slow curtains of summed sines and a few still stars
       for (let j = 0; j < 4; j++) {
         sceneStroke(.04 + j * .015); ctx.beginPath();
@@ -3153,7 +3244,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     const W = cv.width, H = cv.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = `rgba(0,0,0,${reduced ? 1 : 1 - Math.exp(-dt * 70)})`; // short persistence: a hint of trail, no ripple
+    ctx.fillStyle = `rgba(0,0,0,${reduced ? 1 : 1 - Math.exp(-dt * (70 - 56 * apBand('dub')))})`; // short persistence; the Reverberator's level stretches the trails
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     shX = shake > 0 ? R(-2, 2) : 0; shY = shake > 0 ? R(-2, 2) : 0;
@@ -3308,6 +3399,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         const q = pf.trap ? [xx, py, xx, py + 11, xx + pf.w, py + 11, xx + pf.w, py] : [xx, py + 11, xx, py, xx + pf.w, py, xx + pf.w, py + 11]; // traps hang upside down
         if (!pf.used) fillPoly([xx, py, xx + pf.w, py, xx + pf.w, py + 11, xx, py + 11], pf.trap ? COL.red : COL.ch4, .14);
         trace(q, c, pf.used ? 1.2 : 2, pf.used ? .6 : 1); // one square pulse: up, across, down
+      } else if (pf.kind === 'rvbpad') { // a pad: a speaker throwing arcs at him
+        const c = pf.used ? 'rgba(126,240,160,.35)' : COL.ch4;
+        fillPoly([px, py, px + pf.w, py, px + pf.w, py + 8, px, py + 8], c, pf.used ? .05 : .2); trace([px, py + 8, px, py, px + pf.w, py, px + pf.w, py + 8], c, 1.8);
+        if (!pf.used) for (let k = 1; k <= 3; k++) trace([px + pf.w / 2 + 6 * k, py - 4 - 4 * k, px + pf.w / 2 + 9 * k, py - 4 - 1.5 * k, px + pf.w / 2 + 6 * k, py - 4 + k], c, 1, .9 - k * .22);
       } else if (pf.kind === 'arp') { // a note step: the next one bright, done ones yellow, after a slip all dim
         const b = boss, next = b && !b.slip && pf.idx === b.got, c = pf.used ? COL.ch1 : b && b.slip ? 'rgba(255,77,61,.5)' : next ? COL.ch4 : 'rgba(126,240,160,.45)';
         fillPoly([px, py, px + pf.w, py, px + pf.w, py + 8, px, py + 8], c, next ? .25 : .1); trace([px, py + 8, px, py, px + pf.w, py, px + pf.w, py + 8], c, next ? 2.2 : 1.3);
@@ -3479,6 +3574,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (k === 'comp') bossCallout(b.warn ? '↓ НА РАЗ' : 'ЛОВИ ПИКИ', `${b.max - b.hp}/${b.max}`, b.warn ? COL.red : COL.ch4, done);
       else if (k === 'lim') bossCallout(b.lit ? 'БЕЙ!' : '2 · 4', `${b.max - b.hp}/${b.max}`, b.lit ? COL.ch4 : COL.red, done);
       else if (k === 'arp') bossCallout(ARP_MODES[Math.min(b.round, 3)][0], `ступенька ${b.got}/${ARP_MODES[Math.min(b.round, 3)][1].length}`, b.slip ? COL.red : COL.ch4, done);
+      else if (k === 'rvb') bossCallout(`RT60 ${b.decay.toFixed(1)}s`, `${b.max - b.hp}/${b.max} · на пады`, b.decay > 2.4 ? COL.red : COL.ch4, done);
       else if (k === 'voc') bossCallout(`«${b.want}»`, `${b.max - b.hp}/${b.max}`, COL.ch4, done);
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1, не 0', COL.ch4, boss.bits / 16);

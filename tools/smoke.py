@@ -15,7 +15,7 @@ HOOK = "window.T = { ev: (c) => eval(c) };\n  showTitle();\n"
 assert "  showTitle();\n" in HTML, 'hook anchor `  showTitle();` not found'
 HTML = HTML.replace("  showTitle();\n", HOOK, 1)
 
-TARGETS = ['op', 'l0', 'b0', 'l1', 'b1', 'l2', 'b2', 'l3', 'b3', 'l4', 'b4', 'l5', 'b5', 'l6', 'b6', 'l7', 'b7', 'l8', 'b8', 'free']
+TARGETS = ['op', 'l0', 'b0', 'l1', 'b1', 'l2', 'b2', 'l3', 'b3', 'l4', 'b4', 'l5', 'b5', 'l6', 'b6', 'l7', 'b7', 'l8', 'b8', 'l9', 'b9', 'free']
 shots = pathlib.Path(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else None
 
 def ev(page, code):
