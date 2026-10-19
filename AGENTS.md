@@ -25,7 +25,7 @@ open http://localhost:8000/#test     # #test shows the level/boss jump menu
 ```
 
 Keys: **Space / ↑** jump (again in the air = double), **↓ / S** fold, **P** pause, **M** mute, **G** god mode
-(invulnerable, for testing), **F** full screen. On `localhost` and Vercel preview hosts the test menu is always on
+(invulnerable, for testing), **F** full screen. On `localhost`, the staging branch URL and any single Vercel deployment URL (`osc-game-<hash>-…`) the test menu is always on
 and every level is unlocked.
 
 ## Checks — run before every PR

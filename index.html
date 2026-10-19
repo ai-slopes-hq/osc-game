@@ -1414,7 +1414,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   const bossIntroSeen = new Set();
   const seenCat = { ground: false, ceil: false, tall: false }, seenKind = new Set();
   let best = parseInt(store.get('osc-adv-best', '0'), 10) || 0;
-  const staging = /-git-|localhost|127\.0\.0\.1/.test(location.hostname);
+  // test builds: the staging branch URL (…-git-staging-…), any single Vercel deployment URL (osc-game-<9-char hash>-…), local
+  const staging = /-git-|^osc-game-[a-z0-9]{9}-|localhost|127\.0\.0\.1/.test(location.hostname);
   // 'osc-adv-unlocked10' counts ten levels. Older keys: nine levels (Wavetable was 8, now 9), five levels (i → 2i, Wavetable 4 → 9).
   const oldUnlock = () => { const u9 = parseInt(store.get('osc-adv-unlocked9', ''), 10); if (u9 >= 0) return u9 >= 8 ? u9 + 1 : u9;
     const u5 = parseInt(store.get('osc-adv-unlocked', '0'), 10) || 0; return u5 >= 4 ? 9 : 2 * u5; };
