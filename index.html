@@ -2815,7 +2815,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     }
   }
   function drawBoss(tnow) {
-    const b = boss, by = GROUND + (b.B.y ?? -128) + Math.sin(b.t * 1.6) * 8, bw = 104;
+    const b = boss, by = (storyQ ? Math.min(GROUND - 70, Math.max(GROUND + (b.B.y ?? -128), skipClearY() + 66)) : GROUND + (b.B.y ?? -128)) + Math.sin(b.t * 1.6) * 8, bw = 104; // in a dialogue: clear of the skip button
     const amp = 36 * (b.key === 'wt' && dubRate && !b.dead ? .72 + .28 * Math.sin(2 * Math.PI * dubRate * tnow) : 1);
     const dieK = b.dead ? Math.min(1, b.deadT / 1.2) : 0;
     const healed = b.key === 'dsq' ? COL.mdr : b.key === 'ssaw' ? COL.tri : b.key === 'wt' ? COL.ch1 : 'rgba(255,140,120,.85)'; // digital natives stay themselves, just calmer
@@ -2918,6 +2918,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     noise(.012, 'highpass', 4200, 4200, .16);
     tones([(c.pitch ?? 12) + 12 + (Math.random() < .5 ? 0 : 2)], c.digital ? 'square' : c.nar ? 'sine' : 'triangle', 0, c.digital ? .05 : .07, .04);
   }
+  // In a dialogue the ⏭ skip button sits top right: a speaker drawn there is pushed down to clear it (world y of its bottom).
+  const skipClearY = () => { const SK = MOB ? clamp(cw / 11, 34, 48) : 30; return (14 + fontPx() * 2.6 + SK * 1.4 + 8) / scale - offY; };
   function drawSprite(who, x, cy, w, amp, tnow, opt = {}) {
     amp *= opt.amp ?? 1;
     const c = CAST[who], on = speaker() === who, a = (on ? 1 : .32) * (opt.alpha ?? 1);
@@ -2976,7 +2978,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (who === 'sine' || c.nar) continue;
       if ((who === 'cpx' || who === 'cpxr') && who !== cpxNow) continue;
       if (c.remote) drawSprite(who, 300, GROUND - 150 + Math.sin(tnow * 2) * 4, HERO_W, A_NORM, tnow, { alpha: .4 + Math.random() * .6 });
-      else if (c.digital) { if (!boss) drawSprite(who, 392, GROUND - 128 + Math.sin(tnow * 1.6) * 8, 104, 36, tnow); }
+      else if (c.digital) { if (!boss) drawSprite(who, 392, Math.min(GROUND - 70, Math.max(GROUND - 128, skipClearY() + 40)) + Math.sin(tnow * 1.6) * 8, 104, 36, tnow); }
       else if (!(who === 'cpx' && ally)) drawSprite(who, SLOT[who], GROUND - A_NORM, HERO_W, A_NORM, tnow);
     }
   }
