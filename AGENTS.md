@@ -166,7 +166,7 @@
 - `osc-adv-tut` — какие шаги онбординга пройдены (`ground,ceil,tall`).
 
 ## Аналитика
-Vercel Web Analytics — два тега в `<head>` (`window.va` и `/_vercel/insights/script.js`), только просмотры страниц. Включается один раз в проекте Vercel → Analytics → Enable. Свои события (`va('event', …)`) доступны только на платном тарифе. CSP это пропускает: скрипт и отправка — с того же адреса.
+Vercel Web Analytics — два тега в `<head>` (`window.va` и `/_vercel/insights/script.js`), только просмотры страниц. Включается один раз в проекте Vercel → Analytics → Enable. Свои события (`va('event', …)`) доступны только на платном тарифе. Speed Insights (Core Web Vitals) — два тега перед `</body>` (`window.si` и `/_vercel/speed-insights/script.js`); npm-пакет `@vercel/speed-insights` для сайта без сборки не нужен, включается в проекте Vercel → Speed Insights. CSP это пропускает: скрипт и отправка — с того же адреса.
 
 ## Безопасность
 Внешнего ввода нет: ни форм, ни параметров адреса (только сравнение `#test`), ни сети. Всё, что идёт в `innerHTML`, — константы, числа или пропущено через `esc()`. `vercel.json` отдаёт заголовки: CSP (скрипты только свои и инлайн, стили и шрифты — ещё Google Fonts, без `object`, `base`, форм), `nosniff`, `Referrer-Policy`, `Permissions-Policy`. Подключаешь новый внешний источник — допиши его в CSP, иначе браузер его заблокирует.
