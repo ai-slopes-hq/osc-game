@@ -616,7 +616,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let uni = [], oscG, uniK = 0, uniSet = -1, dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
+  let uni = [], oscG, uniK = 0, uniSet = -1, apS = 0, vocDry, vocWet, vocF = [], vocSet = -1, dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -668,7 +668,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     const chipOut = ac.createGain(); chipOut.gain.value = .26;
     chipBus.connect(chipSh); chipSh.connect(chipOut); chipOut.connect(music);
     crushSh = ac.createWaveShaper(); setCrushBits(16);
-    env.connect(crushSh); crushSh.connect(ringG); ringG.connect(lp); lp.connect(music);
+    env.connect(crushSh); crushSh.connect(ringG); ringG.connect(lp);
+    // the Vocoder's level: the Sine is pulled through two formant band-passes (a vowel per bar) as his gate nears
+    vocDry = ac.createGain(); vocWet = ac.createGain(); vocWet.gain.value = 0; lp.connect(vocDry); vocDry.connect(music);
+    vocF = [800, 1200].map(f => { const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = 7; lp.connect(bp); bp.connect(vocWet); return bp; });
+    vocWet.connect(music);
     const delay = ac.createDelay(1); delay.delayTime.value = .27;
     const fb = ac.createGain(); fb.gain.value = .38;
     wet = ac.createGain(); wet.gain.value = 0;
@@ -967,6 +971,12 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (s === 6 || s === 14) { const z = fmVoice(t, 900, 1.5, 6, .06, .03, .05, 'square'); z.frequency.exponentialRampToValueAtTime(3800, t + .05); } // zips
       if (s % 2 === 1 && !odd) hat(t, .022, .015, 9000);
       if (s === 0) c.t.forEach(x => padNote(t, x + 12, barLen * .9, { type: 'triangle', det: [-5, 5], lp: 3000, vol: .016, att: .3, rel: .8 }));
+      const k = apBand('glitch'); // the Sequencer's level: the rhythm gains layers as his gate nears
+      if (k > .2 && s % 2 === 1 && odd) hat(t, .02 + .02 * k, .012, 10000);
+      if (k > .4 && (s === 6 || s === 13)) kick(t, .3, 55);
+      if (k > .55 && !odd && s >= 13) for (let j = 0; j < 2; j++) noiseAt(t + j * d / 2, .025, 'bandpass', 2200 + s * 250 + j * 500, .18);
+      if (k > .7 && s % 4 === 3) noiseAt(t, .02, 'bandpass', 5200, .12);
+      if (k > .85) fmVoice(t, 2400, 1.4, 4, .02, s % 4 ? .015 : .03, .02, 'square', 5000); // his step clock on every 16th
     } else if (style === 'techno') {  // techno: a heavy 4/4, a rumbling sub after each kick, an acid line, a long clap, a ride
       if (s % 4 === 0) { kick(t, .52, 40); duck(t, .2, .16); }
       if (s % 4 !== 0) bandVoice(t, c.r - 12, 'sine', s % 4 === 2 ? .11 : .06, d * .9, 180, .006);          // the rumble under the kick
@@ -1048,11 +1058,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     const semi = ev ? chordTone(c, ev.i) : lastMel;
     if (n % 16 === 0 && style !== styleNow) { styleNow = style; wet.gain.setTargetAtTime(Math.max(WAVES[curWave].wet, STYLE_WET[style]), t, .2); }
     noteLog.push({ t, t0: t, semi, n }); if (noteLog.length > 32) noteLog.shift();
+    if (n % 16 === 0 && vocSet > .01 && vocF.length) { const v = VOWELS[Math.floor(n / 16) % VOWELS.length]; FORMANT[v].forEach((f, i) => vocF[i].frequency.setTargetAtTime(f, t, .06)); } // a vowel per bar
     // boss fights with their own track (Квадрат, Суперпила, Wavetable): the Sine steps aside so the fight IS the music
     const bossTrack = boss && !boss.dead && boss.t > 1 && ['pwm', 'chords', 'harm', 'crush'].includes(boss.B.kind);
     const talk = state === 'story' && !(storyQ && storyQ.scene);
     if (bossTrack) { env.gain.cancelScheduledValues(t); env.gain.setTargetAtTime(0, t, .05); }
-    else if (ev) { lastMel = semi; setFreq(semi + octave, t); env.gain.cancelScheduledValues(t); melNote(t, ev.len * d, talk ? .08 : .24, SYN[style]); }
+    else if (ev) { lastMel = semi; setFreq(semi + octave, t); env.gain.cancelScheduledValues(t); melNote(t, ev.len * d, talk ? .08 : .24, style === 'modern' && apS > .01 && !victoryRun ? { ...SYN.modern, fm: SYN.modern.fm + 2400 * apS, fmS: SYN.modern.fmS + 1000 * apS } : SYN[style]); }
+    else if (!talk && apBand('breaks') > .2 && (apS > .6 || n % 2 === 0)) { // the Arpeggiator's level: arpeggios grow into the gaps
+      const sm = chordTone(c, (n % 4) + (apS > .8 && n % 16 >= 8 ? 1 : 0)); setFreq(sm + 12 + octave, t); env.gain.cancelScheduledValues(t); melNote(t, d * .85, .1 + .08 * apS, SYN.breaks);
+    }
     else if (curWave === 'mdr' && n % 2 === 0) { const sm = chordTone(c, (n >> 1) % 3); setFreq(sm + octave, t); env.gain.cancelScheduledValues(t); melNote(t, d, .16, SYN.chip); } // Меандр fills every gap
     const dance = boss && boss.B.kind === 'chords' && !boss.dead && boss.t > 1;
     const dub = boss && boss.B.kind === 'harm' && !boss.dead && boss.t > 1;
@@ -1365,7 +1379,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   const COL_MODE = '#ffd27a';
 
   function reset() {
-    afterGlide = false; lvlBits = 16; sqz = 0; uniK = 0;
+    afterGlide = false; lvlBits = 16; sqz = 0; uniK = 0; apS = 0;
     const L = LEVELS[level];
     dist = 0; speed = L.speed0; y = 0; vy = 0; onGround = true; buffer = 0; airJumps = 0;
     obstacles = []; pickups = []; pills = []; beams = []; modeCaps = []; nextX = WORLD_W + 70; deathT = 0;
@@ -1707,15 +1721,29 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (LEVELS[level].band !== 'chip' || victoryRun || boss || state === 'over' || state === 'dying') return 16;
     return Math.round(16 - 8 * (bossPending ? 1 : clamp(levelPartials / NEED[level], 0, 1)));
   }
-  // Level 5 (trance, the Supersaw's): the closer her gate, the wider the Sine's melody detunes — two copies drift
-  // ±6 → ±46 cents and fade in, a supersaw growing out of a sine. The hero is drawn with the same ghosts.
-  function trackUni(dt) {
-    const tgt = LEVELS[level].band === 'trance' && !victoryRun && !boss && state !== 'over' ? (bossPending ? 1 : clamp(levelPartials / NEED[level], 0, 1)) : 0;
-    uniK += (tgt - uniK) * (1 - Math.exp(-dt * 1.5));
-    if (!ac || !uni.length || Math.abs(uniK - uniSet) < .01) return;
-    uniSet = uniK; const t = ac.currentTime, mix = .75 * uniK, det = 6 + 40 * uniK;
-    oscG.gain.setTargetAtTime(1 / (1 + 1.4 * mix), t, .1);
-    for (const u of uni) { u.g.gain.setTargetAtTime(mix / (1 + 1.4 * mix), t, .1); u.o.detune.setTargetAtTime(u.sg * det + glideC, t, .1); }
+  // Every boss level builds up to its boss with apS = levelPartials / NEED (eased; the gate open = 1):
+  //   L1 Square — the Sine grows a square layer and its drawn wave squares up · L2 Compressor — the screen squeezes
+  //   (drawSqueeze) · L3 Bitcrusher — bits fall (trackBits) · L4 Limiter — a 0 dBFS ceiling comes down over the jumps ·
+  //   L5 Supersaw — the melody detunes wider (two copies, ±6 → ±46 ct) with drifting ghosts · L6 Arpeggiator — the
+  //   melody's gaps fill with arpeggios, 8ths then 16ths · L7 Sequencer — the glitch rhythm gains layers ·
+  //   L8 Vocoder — the Sine goes through formants · L9 Wavetable — the Sine's FM index rises and its wave morphs.
+  const apTarget = () => !victoryRun && !boss && LEVELS[level].boss && state !== 'over' && state !== 'dying' ? (bossPending ? 1 : clamp(levelPartials / NEED[level], 0, 1)) : 0;
+  const apBand = b => LEVELS[level].band === b && !victoryRun ? apS : 0;
+  const limCeil = () => 330 - 180 * apBand('reggae');
+  function trackApproach(dt) {
+    apS += (apTarget() - apS) * (1 - Math.exp(-dt * 1.5));
+    uniK = apBand('trance');
+    if (!ac || !uni.length) return;
+    const sq = apBand('pop'), want = sq > .01 ? 'square' : osc.type;
+    for (const u of uni) if (u.o.type !== want) { u.o.type = want; uniSet = -1; }
+    const k = Math.max(uniK, sq);
+    if (Math.abs(k - uniSet) >= .01) {
+      uniSet = k; const t = ac.currentTime, mix = uniK ? .75 * uniK : .5 * sq, det = uniK ? 6 + 40 * uniK : 3;
+      oscG.gain.setTargetAtTime(1 / (1 + 1.4 * mix), t, .1);
+      for (const u of uni) { u.g.gain.setTargetAtTime(mix / (1 + 1.4 * mix), t, .1); u.o.detune.setTargetAtTime(u.sg * det + glideC, t, .1); }
+    }
+    const vk = apBand('ambient');
+    if (Math.abs(vk - vocSet) >= .01) { vocSet = vk; const t = ac.currentTime; vocDry.gain.setTargetAtTime(1 - .6 * vk, t, .15); vocWet.gain.setTargetAtTime(1.8 * vk, t, .15); }
   }
   function trackBits() {
     const nb = approachBits(); if (nb === lvlBits) return;
@@ -2392,7 +2420,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (fx.inv > 0) { fx.inv -= dt; if (fx.inv <= 0) setInv(false); }
       if (fx.snh > 0) { fx.snh -= dt; const st = Math.floor(heardBeat() * 2); if (st !== snhStep) { snhStep = st; snhY = y; } if (fx.snh <= 0) setSnh(false); } // the Sine is sampled on every 8th
       rhythmT = Math.max(0, rhythmT - dt);
-      trackBits(); trackUni(dt);
+      trackBits(); trackApproach(dt);
+      const lc = limCeil(); // the Limiter's ceiling coming down over the jumps
+      if (lc < 320 && !boss && hy() + 2 * heroAmp() > lc && vy > 0) { y = lc - 2 * heroAmp(); vy = -60; noise(.05, 'highpass', 3000, 3000, .1); }
       // living obstacles: feedback grows once it's on screen, the DC snake's offset drifts with the bar, echoes ping as they pass
       let fbMax = 0, nfNear = false;
       for (const ob of obstacles) {
@@ -3280,6 +3310,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       }
     }
     drawMini(tnow);
+    { const lc = limCeil(); if (lc < 320 && state === 'play') { const yy = GROUND - lc; ctx.save(); ctx.setLineDash([6, 5]); trace([0, yy, WORLD_W, yy], COL.red, 1.2, .3 + .4 * apS); ctx.restore(); if (!MOB) text('0 dBFS', 30, yy - 9, COL.red, 'left'); } }
     // bit tokens (Биткрашер)
     for (const k of bitTokens) {
       const px = k.x - dist, py = GROUND - k.h;
@@ -3365,12 +3396,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       const flick = rem < 1.3 && Math.floor(rem * 10) % 2 === 0;
       if (!flick) { shape = power.type; hc = powerColor(power.type, tnow); }
     }
-    const cy = GROUND - hy() - heroAmp() + hsy;
+    const cy = GROUND - hy() - heroAmp() + hsy, heroSq = apBand('pop') * .85, heroWt = apBand('modern');
     const hp = [];
     for (let i = 0; i <= HERO_W; i += .6) {
       const u = i / HERO_W, th = 2 * Math.PI * cycles * u - phase;
       const win = u < .14 ? Math.sin(Math.PI / 2 * u / .14) : u > .86 ? Math.sin(Math.PI / 2 * (1 - u) / .14) : 1;
-      let s = Math.sin(drive * Math.PI / 2 * waveVal(th, shape, tnow)) * amp * win;
+      let v = waveVal(th, shape, tnow);
+      if (shape === 'sine' && heroSq) v = lerp(v, Math.tanh(5 * v) / Math.tanh(5), heroSq); // the Square's level: squaring up
+      if (shape === 'sine' && heroWt) v = lerp(v, wtFrame(th, heroWt * (WT_FRAMES.length - 2)), heroWt * .8); // Wavetable's: morphing
+      let s = Math.sin(drive * Math.PI / 2 * v) * amp * win;
       if (fx.rect > 0) s = Math.max(0, s) * 1.6 - amp * .3 * win; // half-wave rectified
       if (dyingK > 0) s += (Math.random() - .5) * (state === 'over' ? 1.6 : 7 * dyingK) * win;
       hp.push(HERO_X + hsx + i, cy - s);
