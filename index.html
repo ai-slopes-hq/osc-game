@@ -1083,7 +1083,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && boss.qBar !== null && n % (16 / boss.N) === 0) { // Simon: he plays, then you
       const i = (n % 16) / (16 / boss.N), rel = Math.floor(n / 16) - boss.qBar;
       if (rel === 0 && boss.pat.includes(i)) fmVoice(t, hz(c.t[i % c.t.length] + 12), 1, 1.5, .18, .09, .1, 'square'); // the call
-      else fmVoice(t, 2400, 1.4, 4, .02, rel === 1 ? .03 : .015, .02, 'square', 5000);                                  // a tick on every step
+      else fmVoice(t, 2400, 1.4, 4, .02, rel >= 1 ? .03 : .015, .02, 'square', 5000);                                  // a tick on every step
     }
     const band = storyQ && storyQ.scene && storyQ.scene.phase === 'calm';
     if (band) orchestra(n, t, c, storyQ.scene);
@@ -1886,7 +1886,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (b.qBar === null) return null;
     if (seqBar() - b.qBar === -1) return 'rest';
     const rel = seqBar() - b.qBar;
-    return rel === 0 ? 'call' : rel === 1 ? 'answer' : rel < 0 ? null : 'judge';
+    return rel === 0 ? 'call' : rel >= 1 ? 'answer' : null; // he plays once, then every bar is yours until you get it
   }
   function updateSeq(dt) {
     const b = boss;
@@ -1902,12 +1902,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         hitBoss(1, 'seq'); return;
       }
       showPop('ВЕРНО', COL.ch1); b.pat = pick(SEQ_RNDS[b.round].pats.filter(p => p !== b.pat));
-    } else { showPop('ЕЩЁ РАЗ', COL.red); b.hitT = .2; }            // same rhythm again, nothing lost
-    b.ans = new Set(); b.wrong = false; b.qBar = bar + 1;               // this bar is a rest for the verdict; the next call comes after it
+      b.qBar = bar + 1;                                                 // a rest bar (the new rhythm shows up top), then his call
+    } else if (b.ans.size || b.wrong) { toast = { t: 0, text: 'ещё раз', color: COL.red }; b.hitT = .2; } // no replay: the rhythm stays up top, keep trying
+    b.ans = new Set(); b.wrong = false;
   }
   function seqJudge() { // called at take-off
     const b = boss; if (!b || b.dead || b.t < 1.4 || b.qBar === null) return;
-    const p = (heardBeat() / 4 - (b.qBar + 1)) * b.N, i = Math.round(p); // an early tap for step 0 may fall at the very end of the call bar
+    const hb = heardBeat() / 4, bar = Math.floor(hb + .4 / b.N);       // an early tap for step 0 belongs to the next bar
+    if (bar <= b.qBar) return;                                          // his call: just listen
+    const p = (hb - bar) * b.N, i = Math.round(p);
     if (Math.abs(p - i) > .4 || i < 0 || i >= b.N) return;              // between steps: a free jump
     const sm = LEVELS[level].prog[0].t[i % 3];
     if (b.pat.includes(i)) { b.ans.add(i); b.flash[i] = 1; tones([sm + 12], 'square', 0, .07, .14); }
@@ -2690,6 +2693,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (lit) fillPoly(q, c, .3 + Math.abs(b.flash[i]) * .4 + (ph === 'call' && inPat && i === cur ? .35 : 0));
         trace(q, c, i === cur && ph ? 2.4 : 1, i === cur && ph ? 1 : .7);
         if (i === cur && ph) trace([xx - 2, by + 25, xx + cwid + 2, by + 25], ph === 'answer' ? COL.ch1 : '#ffffff', 2.6);
+        if (!b.dead && b.pat) { // the reference: his rhythm stays up top the whole time, so you can sit a bar or two out and come in
+          const r = [xx + 3, by - 34, xx + cwid - 3, by - 34, xx + cwid - 3, by - 26, xx + 3, by - 26, xx + 3, by - 34];
+          if (inPat) fillPoly(r, COL.red, .55); trace(r, COL.red, 1, inPat ? .9 : .3);
+        }
       }
     } else if (b.key === 'wt') {
       const scan = b.t * .7;

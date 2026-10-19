@@ -188,7 +188,7 @@ Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level do
 | 1 | Square (captured Meander) | `pwm` | Green pulse platforms; land → it collapses, duty `base` +6.5% (+2.5% in a chain); red inverted pulses are traps (−10%); he always pulls back to 50%; from 75% (`SQ_FINAL`) only an unbroken chain of `SQ_FINAL_CHAIN` counts; 97% wins | `synthwave`, pulse width = `duty` |
 | 3 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
 | 5 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
-| 7 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm), bar REPEAT (tap it back — every tap counts, even mid-air), verdict bar. Wrong → he plays it again, nothing lost. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
+| 7 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm once), then every bar is REPEAT (tap it back — every tap counts, even mid-air) until it's right; the rhythm stays shown as a reference row above his steps, so you can sit a bar or two out and come in. Wrong → just try the next bar, nothing lost; right → a rest bar shows the next rhythm, then his call. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
 | 9 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
 
 
