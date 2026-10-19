@@ -386,11 +386,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['sine', 'Что с ним сделали?'],
         ['mdr', 'Ничего. Он сам сложил семь пил вместе. Танцполы любят громкое. Я его понимаю: когда тебя не замечают, хочется стать резче.'],
       ] },
-    seq: { who:'seq', hp:1, kind:'seq', noAtk:true, morph:'sine', y:-150, tip:'прыгай на красный шаг',
+    seq: { who:'seq', hp:1, kind:'seq', noAtk:true, morph:'sine', y:-150, tip:'слушай и повтори прыжками',
       intro: [
         ['seq', 'Восемь шагов. Каждый мой. Ты будешь играть то, что я запрограммировал.'],
         ['sine', 'А если я перепрограммирую?'],
-        ['seq', 'Попробуй хотя бы попасть в такт. Прыгнешь на пустой шаг — отберу взятый и сдвину узор. И я буду ускоряться.'],
+        ['seq', 'Давай так: я играю такт — ты повторяешь прыжками. Собьёшься — сыграю ещё раз. Три верных ответа, потом быстрее.'],
       ],
       outro: [
         ['seq', 'Шаги… теперь… твои…'],
@@ -945,13 +945,15 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     else if (curWave === 'mdr' && n % 2 === 0) { const sm = chordTone(c, (n >> 1) % 3); setFreq(sm + octave, t); env.gain.cancelScheduledValues(t); melNote(t, d, .16, SYN.chip); } // Меандр fills every gap
     const dance = boss && boss.B.kind === 'chords' && !boss.dead && boss.t > 1;
     const dub = boss && boss.B.kind === 'harm' && !boss.dead && boss.t > 1;
-    if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % (4 / boss.rate) === 0) { // the sequencer plays its own steps
-      const i = (n / (4 / boss.rate)) % boss.N;
-      if (boss.active.includes(i)) {
-        const sm = c.t[i % c.t.length] + 12;
-        if (boss.captured.includes(i)) fmVoice(t, hz(sm + 12), 1, .01, .3, .1, .2);
-        else fmVoice(t, hz(sm), 1, 1.5, .16, .07, .1, 'square');
-      } else fmVoice(t, 2400, 1.4, 4, .02, .02, .02, 'square', 5000); // empty step: a dry tick
+    if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && n % 16 === 0) { // Simon's bar clock lives here, ahead of what you hear
+      const bar = Math.floor(n / 16);
+      if (boss.qBar === null) boss.qBar = bar;
+      else if (bar - boss.qBar >= 2) seqEvaluate(boss, bar);
+    }
+    if (boss && boss.B.kind === 'seq' && !boss.dead && boss.t > 1 && boss.qBar !== null && n % (16 / boss.N) === 0) { // Simon: he plays, then you
+      const i = (n % 16) / (16 / boss.N), rel = Math.floor(n / 16) - boss.qBar;
+      if (rel === 0 && boss.pat.includes(i)) fmVoice(t, hz(c.t[i % c.t.length] + 12), 1, 1.5, .18, .09, .1, 'square'); // the call
+      else fmVoice(t, 2400, 1.4, 4, .02, rel === 1 ? .03 : .015, .02, 'square', 5000);                                  // a tick on every step
     }
     const band = storyQ && storyQ.scene && storyQ.scene.phase === 'calm';
     if (band) orchestra(n, t, c, storyQ.scene);
@@ -1548,56 +1550,48 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   }
   const crushPx = () => boss && boss.B.kind === 'crush' && !boss.dead ? Math.max(1, Math.round((16 - boss.bits) * .9)) : 1;
 
-  // --- Секвенсор: 8 steps, a playhead on the beat. Jump while the playhead is on a lit step to take that step.
-  //     Take every lit step and the sequence is yours. A jump off the beat gives one back.
-  // Three rounds, each faster: 8 steps on quarters, 8 on eighths, then 16 on eighths with the lit steps on the off-beats.
-  // A jump counts only near the start of a step. On a lit step: yours. On a dark step: a miss — you lose the last
-  // step you took and the pattern shifts. A jump between steps is free. No obstacles: the steps are the whole fight.
-  const SEQ_ROUNDS = [{ rate: 1, N: 8, act: 5, win: .1 }, { rate: 2, N: 8, act: 6, win: .085 }, { rate: 2, N: 16, act: 7, sync: true, drift: true, win: .07 }];
+  // --- Секвенсор: «Саймон говорит». He plays a one-bar rhythm on his steps (СЛУШАЙ), the next bar is yours (ПОВТОРИ):
+  //     jump on the same steps. Right answer = progress; a wrong or missing step just makes him play it again —
+  //     nothing is taken away. Two rounds: 4 steps on quarters, then 8 steps on eighths with off-beats. 3 answers each.
+  //     Judging uses the beat as you HEAR it (output latency compensated) and a wide window (±40% of a step).
+  const SEQ_RNDS = [{ N: 4, rate: 1, pats: [[0, 2], [0, 1, 3], [0, 2, 3], [1, 2], [0, 3], [1, 3]] },
+                    { N: 8, rate: 2, pats: [[0, 3, 6], [0, 2, 3, 6], [1, 3, 4, 6], [0, 3, 5, 7], [0, 1, 4, 6], [2, 3, 6, 7]] }];
+  const SEQ_NEED = 3;
+  const heardBeat = () => beatPos - ((ac && (ac.outputLatency || ac.baseLatency)) || 0) * bpmNow() / 60;
   function seqRound(b, r) {
-    const R = SEQ_ROUNDS[r], all = [...Array(R.N).keys()].sort(() => Math.random() - .5);
-    const pool = R.sync ? all.filter(i => i % 2).concat(all.filter(i => i % 2 === 0)) : all; // off-beats first
-    Object.assign(b, { round: r, rate: R.rate, N: R.N, captured: [], flash: Array(R.N).fill(0), active: pool.slice(0, R.act).sort((x, y) => x - y), driftBar: undefined });
+    const R = SEQ_RNDS[r];
+    Object.assign(b, { round: r, N: R.N, rate: R.rate, done: 0, flash: Array(R.N).fill(0), qBar: null, pat: pick(R.pats), ans: new Set(), wrong: false, said: '' });
+  }
+  const seqBar = () => Math.floor(heardBeat() / 4);
+  function seqPhase(b) { // 'call' | 'answer' | null (waiting for the first bar)
+    if (b.qBar === null) return null;
+    const rel = seqBar() - b.qBar;
+    return rel === 0 ? 'call' : rel === 1 ? 'answer' : rel < 0 ? null : 'judge';
   }
   function updateSeq(dt) {
     const b = boss;
-    for (let i = 0; i < b.N; i++) b.flash[i] = Math.max(0, b.flash[i] - dt * 3);
-    if (SEQ_ROUNDS[b.round].drift) { // the last round won't sit still: every two bars the whole pattern slides one step
-      const bar2 = Math.floor(beatPos / 8);
-      if (b.driftBar === undefined) b.driftBar = bar2;
-      if (bar2 !== b.driftBar) {
-        b.driftBar = bar2; const rot = k => (k + 1) % b.N;
-        b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
-        b.flash = b.flash.map(() => .5); toast = { t: 0, text: 'узор сдвинулся ≫', color: COL.red };
-      }
-    }
+    for (let i = 0; i < b.N; i++) b.flash[i] = Math.sign(b.flash[i]) * Math.max(0, Math.abs(b.flash[i]) - dt * 2.5);
   }
-  function seqJudge() {
-    const b = boss; if (!b || b.dead || b.t < 1.4) return;
-    const pos = beatPos * b.rate, near = Math.round(pos), stepSec = 60 / bpmNow() / b.rate;
-    if (Math.abs(pos - near) * stepSec > Math.min(SEQ_ROUNDS[b.round].win, stepSec * .32)) return; // between steps: a free jump
-    const i = ((near % b.N) + b.N) % b.N;
-    if (b.active.includes(i) && !b.captured.includes(i)) {
-      b.captured.push(i); b.flash[i] = 1; b.hitT = .15;
-      const sm = LEVELS[level].prog[0].t[i % 3]; tones([sm + 12, sm + 24], 'sine', .02, .12, .35);
-      toast = { t: 0, text: `шаг ${b.captured.length}/${b.active.length}`, color: COL.ch1 };
-      if (b.captured.length >= b.active.length) {
-        if (b.round < SEQ_ROUNDS.length - 1) {
-          seqRound(b, b.round + 1); sfxLevel(); buzz([20, 30, 20]);
-          showPop(`РАУНД ${b.round + 1}`, COL.red, 2);
-          toast = { t: 0, text: b.round === 1 ? 'быстрее!' : 'узор плывёт', color: COL.red };
-        } else hitBoss(1, 'seq');
+  // Judged by the music scheduler at the downbeat after the answer bar, so the next call is decided before it plays.
+  function seqEvaluate(b, bar) {
+    const ok = !b.wrong && b.pat.every(i => b.ans.has(i));
+    if (ok) {
+      b.done++; tones([12, 16, 19, 24], 'sine', .05, .1, .3); buzz(25);
+      if (b.done >= SEQ_NEED) {
+        if (b.round < SEQ_RNDS.length - 1) { seqRound(b, b.round + 1); sfxLevel(); showPop('РАУНД 2', COL.red, 2); toast = { t: 0, text: 'быстрее!', color: COL.red }; b.qBar = bar + 1; return; }
+        hitBoss(1, 'seq'); return;
       }
-    } else if (b.active.includes(i)) {
-      // on a step you already own: nothing happens
-    } else {
-      const lost = b.captured.pop();
-      const sh = pick([1, 2, 3, -1, -2, -3]), rot = k => ((k + sh) % b.N + b.N) % b.N;
-      b.active = b.active.map(rot).sort((x, y) => x - y); b.captured = b.captured.map(rot);
-      b.flash = b.flash.map(() => .8); b.hitT = .2;
-      tones([-1, -6], 'square', .05, .06, .2); noise(.12, 'highpass', 2000, 5000, .2);
-      toast = { t: 0, text: lost !== undefined ? 'мимо · −1 шаг' : 'мимо', color: COL.red };
-    }
+      showPop('ВЕРНО', COL.ch1); b.pat = pick(SEQ_RNDS[b.round].pats.filter(p => p !== b.pat));
+    } else { showPop('ЕЩЁ РАЗ', COL.red); b.hitT = .2; }            // same rhythm again, nothing lost
+    b.ans = new Set(); b.wrong = false; b.qBar = bar;                   // this bar is the next call
+  }
+  function seqJudge() { // called at take-off
+    const b = boss; if (!b || b.dead || b.t < 1.4 || b.qBar === null) return;
+    const p = (heardBeat() / 4 - (b.qBar + 1)) * b.N, i = Math.round(p); // an early tap for step 0 may fall at the very end of the call bar
+    if (Math.abs(p - i) > .4 || i < 0 || i >= b.N) return;              // between steps: a free jump
+    const sm = LEVELS[level].prog[0].t[i % 3];
+    if (b.pat.includes(i)) { b.ans.add(i); b.flash[i] = 1; tones([sm + 12], 'square', 0, .07, .14); }
+    else { b.wrong = true; b.flash[i] = -1; tones([-1, -6], 'square', .04, .05, .15); }
   }
   function landOn(pf) {
     if (!boss || boss.dead || pf.used) return;
@@ -1657,7 +1651,6 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
 
   const triOn = () => power && power.type === 'tri';
   function noteJumpDir() {
-    if (boss && boss.B.kind === 'seq' && !boss.dead) seqJudge();
   }
   function doJump() { noteJumpDir(); vy = JUMP_V * (triOn() ? 1.05 : 1) * (fx.rect > 0 ? .72 : 1); onGround = false; standing = null; airJumps = 1; buffer = 0; jumpOct = 12; syncOctave(); flash(); }
   function pressJump() {
@@ -1665,6 +1658,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (state === 'title' || state === 'over') { start(state === 'over' ? level : 0, state === 'over'); return; }
     if (state === 'paused') { resume(); return; }
     if (state !== 'play') return;
+    if (boss && boss.B.kind === 'seq' && !boss.dead) seqJudge(); // every tap is a beat, even in mid-air
     if (onGround) doJump();
     else if (airJumps > 0 && fx.rect <= 0) { noteJumpDir(); vy = DJUMP_V * (triOn() ? 1.05 : 1); airJumps = 0; jumpOct = 24; syncOctave(); flash(); }
     else buffer = .13;
@@ -2320,15 +2314,17 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       }
       trace(q, col, 2.2, alpha);
     } else if (b.key === 'seq') {
-      const N = b.N || 8, cwid = N > 8 ? 17 : 30, gap = N > 8 ? 4 : 7, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
-      const cur = ((Math.floor(beatPos * (b.rate || 1) + .5) % N) + N) % N; // the step whose window is open now
+      const N = b.N || 4, cwid = N > 4 ? 30 : 46, gap = N > 4 ? 7 : 10, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
+      const ph = b.dead ? null : seqPhase(b), barF = heardBeat() / 4, cur = Math.floor(frac(barF) * N); // the step you hear now
       for (let i = 0; i < N; i++) {
-        const xx = sx + i * (cwid + gap), on = b.active.includes(i), mine = b.captured.includes(i);
-        const q = [xx, by - 15, xx + cwid, by - 15, xx + cwid, by + 15, xx, by + 15, xx, by - 15];
-        const c = b.dead || mine ? COL.ch1 : on ? COL.red : 'rgba(255,77,61,.35)';
-        if (on || mine || b.dead) fillPoly(q, c, (mine ? .45 : .25) + b.flash[i] * .4);
-        trace(q, c, i === cur && !b.dead ? 2.2 : 1, i === cur ? 1 : .7);
-        if (i === cur && !b.dead) trace([xx - 2, by + 22, xx + cwid + 2, by + 22], '#ffffff', 2.4);
+        const xx = sx + i * (cwid + gap), inPat = b.pat && b.pat.includes(i), got = b.ans && b.ans.has(i);
+        const q = [xx, by - 18, xx + cwid, by - 18, xx + cwid, by + 18, xx, by + 18, xx, by - 18];
+        // the call shows his rhythm in red; the answer is blank until you fill it in yellow; a wrong step flashes red
+        const c = b.dead || got ? COL.ch1 : ph === 'call' && inPat ? COL.red : b.flash[i] < 0 ? COL.red : 'rgba(255,77,61,.35)';
+        const lit = b.dead || got || (ph === 'call' && inPat) || b.flash[i] < 0;
+        if (lit) fillPoly(q, c, .3 + Math.abs(b.flash[i]) * .4 + (ph === 'call' && inPat && i === cur ? .35 : 0));
+        trace(q, c, i === cur && ph ? 2.4 : 1, i === cur && ph ? 1 : .7);
+        if (i === cur && ph) trace([xx - 2, by + 25, xx + cwid + 2, by + 25], ph === 'answer' ? COL.ch1 : '#ffffff', 2.6);
       }
     } else if (b.key === 'wt') {
       const scan = b.t * .7;
@@ -2677,7 +2673,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function progressNow() {
     if (boss && !boss.dead) {
       const b = boss, k = b.B.kind;
-      const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? (b.round + b.captured.length / b.active.length) / SEQ_ROUNDS.length
+      const f = k === 'pwm' ? (b.base - .5) / (SQ_WIN - .5) : k === 'crush' ? (b.bits - 8) / 8 : k === 'seq' ? (b.round + b.done / SEQ_NEED) / SEQ_RNDS.length
         : k === 'harm' ? (8 - b.rem.length) / 8 : 1 - b.hp / b.max;
       return [clamp(f, 0, 1), lowLives() ? COL.red : COL.ch1]; // low on partials: blinks red/yellow
     }
@@ -2985,7 +2981,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2 - 8, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
-      bossCallout(`ШАГИ ${boss.captured.length}/${boss.active.length}`, `раунд ${boss.round + 1}/3`, COL.red, boss.captured.length / boss.active.length);
+      bossCallout(seqPhase(boss) === 'answer' ? 'ПОВТОРИ' : 'СЛУШАЙ', `раунд ${boss.round + 1}/2 · ${boss.done}/${SEQ_NEED}`, seqPhase(boss) === 'answer' ? COL.ch1 : COL.red, boss.done / SEQ_NEED);
     if (boss && boss.B.kind === 'chords' && !boss.dead && !storyQ) {
       if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
       else bossCallout('ЩИТ', 'жди', COL.red);
@@ -3066,7 +3062,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (pop && !storyQ) { // never over a dialogue
       const t = pop.t, a = t < .08 ? t / .08 : t > .75 ? Math.max(0, (1.1 - t) / .35) : 1;
       const sc = t < .22 ? 1 + .6 * Math.pow(1 - t / .22, 2) : 1;
-      bigText(pop.text, cw / 2, ch * .33 - t * 14, pop.color, clamp(cw / 11, 34, 84) * sc, a);
+      bigText(pop.text, cw / 2, (boss && boss.B.kind === 'seq' ? ch * .6 : ch * .33) - t * 14, pop.color, clamp(cw / 11, 34, 84) * sc, a); // under the Sequencer's grid
     }
     drawTut();
   }
