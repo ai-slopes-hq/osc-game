@@ -1143,6 +1143,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       bassEnv.gain.cancelScheduledValues(t);
       bassEnv.gain.setTargetAtTime(dance ? .2 : bossMusic ? .16 : .2, t, .006);
       bassEnv.gain.setTargetAtTime(bossMusic ? .02 : .09, t + .04, dance ? .06 : bossMusic ? .08 : .5);
+      bassEnv.gain.setTargetAtTime(0, t + stepDur() * (dance ? 2 : 3.5), .12); // every bass note ends: no sustain left humming
+    } else if (n % 4 === 0 && bassEnv.gain.value > .0005 && (lvlBand || dub || wave80 || band || chip)) { // another part has the bass now
+      bassEnv.gain.cancelScheduledValues(t); bassEnv.gain.setTargetAtTime(0, t, .1);
     }
   }
   function nowNote() {
@@ -3796,6 +3799,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (k % 2 === 0 && /[^\s.,!?…—–:;«»()-]/.test(line[1][k])) keyClick(line[0]); // a key click every other letter
       }
     } else if (state !== 'paused') { tutTick(dt); update(dt * slow * (power && power.type === 'tst' ? .72 : 1)); }
+    if (state !== 'play' && ac && fbG && fbG.gain.value > .0005) { fbG.gain.setTargetAtTime(0, ac.currentTime, .05); if (!boss) noiseBedG.gain.setTargetAtTime(0, ac.currentTime, .08); } // feedback whine / noise-floor hiss never outlive the run
     musicFilter(dt);
     render(state === 'paused' ? .0001 : dt);
     postFx();
