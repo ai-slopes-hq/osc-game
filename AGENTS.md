@@ -117,7 +117,7 @@ Animated ones read `beatPos` (synced to audio). Effect gates (`gate:'rect'|'ring
 
 ### Partials = lives, and the Sonic-style pace
 Each level starts with `START_PARTIALS = 4`. A hit (`takeHit`) costs `HIT_COST = 4`; they scatter and can be caught
-back; 1.6 s invulnerability; a hit with none left ends the run. The same partials open the boss gate (`NEED[level]`).
+back; 1.6 s invulnerability; a hit with none left ends the run. After a hit the toast says: 0 left — «следующий удар — последний», 1–4 — «осталось N · осторожно», more — just «осталось N». The same partials open the boss gate (`NEED[level]`).
 On a level with a boss, speed and obstacle density follow `levelPartials / NEED` — closer to the gate is faster, losing
 partials eases off; the music tempo follows speed.
 

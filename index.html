@@ -1456,7 +1456,10 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     for (let i = 0; i < lost; i++) pickups.push({ x: dist + HERO_X + 70 + i * 30 + R(-6, 6), h: R(18, 78), got: false, t: 0, seed: R(0, 6), lost: true, age: 0 });
     sfxPartialLoss(levelPartials + lost, levelPartials); noise(.2, 'lowpass', 2500, 300, .25); buzz([60, 40, 60]);
     showPop(`−${lost} ◎`, COL.red, 2);
-    toast = { t: 0, text: levelPartials ? `осталось ${levelPartials}` : 'ещё удар — конец', color: COL.red };
+    // 0 left: the next hit is the last; 1–4: a warning; more: just the count
+    toast = levelPartials === 0 ? { t: 0, text: 'следующий удар — последний', color: COL.red }
+      : levelPartials <= 4 ? { t: 0, text: `осталось ${levelPartials} · осторожно`, color: COL.ch1 }
+      : { t: 0, text: `осталось ${levelPartials}`, color: COL.silk };
     if (!reduced) shake = .25;
   }
   function loseIndex() {
