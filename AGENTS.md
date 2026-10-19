@@ -1,208 +1,212 @@
-# AGENTS.md — «Приключения осциллятора»
+# AGENTS.md — Oscillator Adventures («Приключения осциллятора»)
 
-Браузерный ранер на экране осциллографа. Синус бежит по развёртке, играет арпеджио, прыгает через функции и спасает аналоговые сигналы от цифровых форм. Всё — один статический `index.html`: Canvas 2D и Web Audio, без сборки, без зависимостей, без сервера.
+Guide for anyone — human or coding agent (Claude Code, Codex, Cursor, Copilot, Aider…) — picking up this repo.
+Read this file before changing anything. `CLAUDE.md` just points here.
 
-Язык интерфейса, реплик и комментариев для игрока — русский. Комментарии в коде — английские, короткие, объясняют «зачем».
+## What this is
 
-## Файлы
+A browser side-scroller drawn on an oscilloscope screen. The player is a **sine wave** running along the trace.
+It plays a melody; **jumping** lifts the melody an octave (+24 on a double jump), **folding** (a wavefolder squeeze)
+lets it crawl under hanging functions and drops it an octave. Obstacles are maths functions, effect gates
+(rectifier, ring modulator) and boss fights. Story: analog signals (Triangle, Sine, Meander, old Complex oscillator)
+are taken by digital forms led by **Wavetable**; the Sine — "just a test signal" — goes to get them back.
 
-| Файл | Что это |
-|---|---|
-| `index.html` | Вся игра: разметка панели, CSS, один `<script>` с IIFE |
-| `manifest.webmanifest`, `icon-*.png`, `apple-touch-icon.png`, `favicon.svg` | PWA: «На экран Домой», полноэкранный запуск |
-| `og.png` | превью ссылки |
-| `vercel.json` | статический хостинг, `cleanUrls` |
-| `AGENTS.md` | этот файл |
+- **Everything is one static file: `index.html`** — HTML, CSS and one `<script>` (an IIFE). Canvas 2D + Web Audio.
+  No build step, no bundler, no runtime dependencies, no server code.
+- **Player-facing text is Russian.** Code, comments and commit messages are English. Comments explain *why*.
+- Mobile-first: phones get full-screen touch play (hold left half = fold, tap right half = jump).
 
-## Запуск и деплой
+## Quick start
 
-- Локально: `python3 -m http.server 8000` в папке → `http://localhost:8000`. Можно открыть и файл напрямую, но манифест и часть API работают только по http(s).
-- Деплой: Vercel, Framework Preset **Other**, без команды сборки.
-- **Сначала staging.** Правки пушатся в ветку `staging` — Vercel собирает для неё превью-деплой со своей ссылкой, прод не трогается. В `main` (прод) — только после того, как владелец проверил превью и сказал «в прод».
-- Тестовое меню «Тест: переход» (любой уровень или босс сразу) скрыто; показывается при `#test` в адресе (на компьютере — плавающей панелью внизу слева). На превью-адресах (`-git-` в имени хоста, `localhost`) флаг `staging`: меню видно всегда и все уровни открыты — прогресс там хранится отдельно от прода.
-- Клавиша **G** — бессмертие, **P** — пауза, **M** — звук, **F** — полный экран.
-
-## Жёсткие правила
-
-1. **Один файл, без сборки и библиотек.** Шрифты — Google Fonts (IBM Plex Mono / Sans, Unbounded) с системным запасным стеком. Не тянуть npm-пакеты в рантайм.
-2. **Канвас рисуется в мировых единицах.** Мир 480 единиц в ширину, `GROUND = 238`, база высоты 300. Масштаб `scale = cw / 480`; лишняя высота экрана уходит в небо (`offY`). Текст рисуется в экранных пикселях через `text()` / `textScreen()`, чтобы не мельчал.
-3. **Цвета — это каналы осциллографа, их смысл не менять:**
-   - CH1 жёлтый `#f4e15a` — Синус (игрок);
-   - CH2 голубой — функции на земле; CH3 маджента — висящие функции; CH4 зелёный — партиалы и «правильно/хорошо»;
-   - красный `#ff4d3d` — цифра и опасность: боссы, их атаки, ворота эффектов (`COL.fx`);
-   - оранжевый — Комплекс и FM; лавандовый — Треугольник; золотой — капсулы ладов.
-4. **Честность ввода.** Всё, что зависит от момента (такт Секвенсора), судится по моменту *толчка*, с небольшим окном на смене состояния. Игрок видел подсказку, оттолкнулся по ней — засчитать. Подсказка должна быть там, куда смотрят при прыжке, а не только в HUD.
-5. **Бои с боссами:** без препятствий, без капсул-бустеров, без партиалов (кроме случаев, где они — механика). Свой трек босса глушит мелодию Синуса (`bossTrack` в `playStep`).
-6. **Музыка отражает состояние боя.** ШИМ Квадрата ведёт ширину импульса синтвейва; разрядность Биткрашера — квантователь чиптюна; снятые гармоники Wavetable раздевают дабстеп.
-7. **Мобильные — первый класс.** На тач-устройствах при старте включается `playMode`: экран на весь дисплей, левая половина дисплея держит фолд, правая — прыжок, оба пальца одновременно. Новые элементы управления проверять на 390×844 и 844×390.
-   Страница — это только игра на любом устройстве: раскладка `playMode` включается сразу при загрузке (и на титуле), обвязка страницы скрыта. На телефоне в портрете титул занимает весь экран (`at-title`), а в игре экран сверху, снизу — место для пальцев; настоящий полноэкранный режим и запрет сна включаются при старте забега, «Меню» только выходит из полноэкранного режима. На компьютере (`desk = !coarse`) экран занимает всё окно. Кнопки ♪ ❚❚ ⛶ и счёт — внизу справа (`body.desk`). Подсказки по клавишам — один раз за визит в начале первого забега (`deskHints`) и строкой на титуле.
-8. **Любая новая сущность при первом появлении показывает подсказку** (`ob.hint` / `tagHint`).
-9. **Никаких скачков громкости у звучащих голосов.** Огибающие — только `setTargetAtTime` (экспонента от текущего значения). `setValueAtTime` на работающем гейне даёт щелчок, а дилей его ещё и повторяет. Исключение — чиптюн, где ступенчатая огибающая задумана.
-10. **Цикл кадра не должен падать:** `requestAnimationFrame` вызывается первым в `frame()`. Всё, что трогает `localStorage`, — через обёртку `store` (try/catch).
-
-## Карта скрипта (по порядку в файле)
-
-Номера строк плавают — ищи по именам.
-
-- **Константы мира** — `WORLD_W`, `GROUND`, `HERO_*`, `GRAV`, `JUMP_V`, `DJUMP_V`, `SPEED_MAX`, `MINC` (минимальный просвет под висящей функцией), `COL`.
-- **Сюжет** — `CAST` (имя, цвет, волна, `digital`, `chip`, `pitch` для «клавиш»), `OPENING` (вступление; третий элемент строки — действие сцены), `BOSSES` (`intro`/`outro` + параметры боя).
-- **Уровни** — `LEVELS` (лад, темп, длина, пулы препятствий, `intro`, `boss`), `NEED` (партиалов для открытия босса), `MODES` (+3 лада свободного режима), `POWERS` (капсулы MDR/TRI/CPX).
-- **Волны** — `waveVal(th, type, t)` — общий словарь форм для героя, спрайтов, капсул и боссов (`sine`, `mdr`, `cpx`, `tri`, `dsq`, `ssaw`, `wt`, `pwm`, `bc`, `seq`); `wtFrame` — морф кадров таблицы.
-- **Аудио** — `initAudio`, планировщик `schedule`/`playStep`, голоса и треки (`orchestra`, `synthwave`, `drums`, `chiptune`, `dubstep`), эффекты, `sfx*`.
-- **Препятствия** — `makeOb(kind, x)`.
-- **Состояние** — `reset`, `spawn`, `tagHint`.
-- **Боссы** — `spawnBoss`, `hitBoss`, `bossDone` и по блоку на каждого.
-- **Ввод игрока** — `collide`, `pressJump`, `doJump`, `noteJumpDir`, `givePower`, `start`, `levelUp`, `die`, `gameOver`, `pause`/`resume`.
-- **Сюжетный движок** — `story`, `storyNext`, `storySkip`, сцена вступления (`makeOpening`, `runAct`, `sceneTick`).
-- **Оверлей и HUD** — `showTitle` (три режима), `showOverlay('over'|'paused')`, `renderLevelChips`, `hud`.
-- **Ввод и мобильный режим** — клавиши, pointer на `#bezel`, `layoutPlay`, `enterPlayMode`/`exitPlayMode`.
-- **Обновление** — `update(dt)`, `updateBoss(dt)`.
-- **Отрисовка** — `trace` (свечение в два прохода), `drawBoss`, `drawSprite`, `drawStoryActors`, `drawStoryText`, `drawPartialGate`, `render(dt)`, `postFx` (пикселизация Биткрашера).
-- **Цикл** — `frame` (+ авто-снижение качества `lowQ` на слабых телефонах), тестовое меню `testJump`.
-
-## Системы
-
-### Герой и физика
-`y` — высота низа волны над землёй, `vy` вверх положительный. Прыжок `JUMP_V`, двойной `DJUMP_V`, буфер прыжка 0,13 с.
-
-Фолд (`foldHeld`) сжимает амплитуду `A_NORM → A_FOLD`, а в воздухе ускоряет падение. Октава арпеджио: `jumpOct` (+12/+24) плюс фолд (−12), всё через `syncOctave()`.
-
-Платформы (`platforms`) — общий механизм для аккордов, импульсов Квадрата и прочего: приземление сверху, `standing`, сход с края, вызов `landOn(pf)`.
-
-### Препятствия
-`makeOb` возвращает `{ w, h, label, prof(u) }`, где `u ∈ [0,1]` — позиция по ширине.
-
-- **Земные:** `prof(u)` — доля высоты `h`.
-- **Висящие** (`ground:false`): `prof(u)` — просвет над землёй в единицах, не меньше `MINC`.
-- **Анимированные** читают `beatPos` — он синхронизирован с аудио через `noteLog`.
-- **Ворота эффектов** (`gate:'rect'|'ring'`) не убивают, а включают эффект: `applyFx`, состояние в `fx`.
-- **Атаки боссов** — с флагами `enemy` и `vx`.
-
-Двойные стены (`tall`) не идут подряд, и после стены зазор не меньше `speed × 1.05` — двойной прыжок висит в воздухе ~0,9 с, надо успеть приземлиться.
-
-Чтобы добавить препятствие: новый `case` в `makeOb`, при необходимости `hint`, затем добавить kind в пул нужного уровня в `LEVELS`.
-
-### Онбординг
-Первая наземная функция, первая висящая и первая высокая стена: забег плавно тормозит до стоп-кадра (`slow`, `tutTick` → `update(dt * slow)`) ровно в точке, где действие сработает, и карточка (`drawTut`) говорит, что нажать. Нажатие само делает ход, и забег разгоняется обратно. Точку толчка считает `bestTakeoff` симуляцией прыжка по профилю препятствия: середина самого длинного окна, где прыжок проходит и приземляется за препятствием. Для стены — две остановки: перед толчком и у вершины первого прыжка. Пройденные виды пишутся в `osc-adv-tut`; пока онбординг не пройден, нижние подсказки по клавишам не показываются. Не работает в боях и в бесконечном режиме.
-
-### Партиалы = жизни
-Каждый уровень начинается с `START_PARTIALS = 4` партиалов. Попадание (`takeHit`) отнимает `HIT_COST = 4`: они разлетаются вперёд и мигают 2,8 с — их можно подобрать обратно. Даёт 1,6 с неуязвимости. Без партиалов попадание — смерть. Через `takeHit` идут препятствия, второй сайдбенд кольцевого модулятора и красные выстрелы Wavetable. Те же партиалы считаются для ворот босса.
-
-### Уровни, ворота партиалов, режимы
-Уровень длится `len` мировых единиц. Если у уровня есть `boss`, к концу нужно `NEED[level]` партиалов. Не хватает — уровень продолжается с повышенным шансом партиалов, хватает — `bossPending`. HUD — `drawPartialGate`.
-
-Сложность как в Sonic: на уровне с боссом скорость и плотность препятствий растут вместе с партиалами (`levelPartials / NEED`), потеря партиалов откатывает обратно; темп музыки идёт за скоростью. Когда у игрока меньше 4 партиалов (следующий удар может стать последним), полоса прогресса мигает: на уровне жёлтым, в бою красным (`lowLives`; в бессмертии не мигает).
-
-Режимы со стартового экрана: «Сюжет», «Сюжет · бессмертие» (выставляет `god`), «∞ Бесконечный» (`start(4, false, true)` → `victoryRun`, капсулы ладов `modeCaps`).
-
-### Боссы
-`BOSSES[key]`: `who`, `hp`, `kind`, `y`, `tip`, `noAtk`, `ally`, `intro`, `outro`.
-
-| Уровень | Босс | `kind` | Механика | Музыка |
-|---|---|---|---|---|
-| 1 | Квадрат (захваченный Меандр) | `pwm` | Едут импульсы-платформы (`updatePwm`), сужаются по мере роста ШИМ; приземлился — платформа обрушивается, `boss.base` +6% (+2,5% в серии); красные перевёрнутые — ловушки, −10%; ШИМ всегда тянет к 50% (на земле быстрее); от 75% (`SQ_FINAL`) — только серия из `SQ_FINAL_CHAIN` (2) импульсов без касания земли, коснулся — откат к 75%; 97% — победа | `synthwave`, ширина импульса = `boss.duty` (`trackSquare`) |
-| 2 | Биткрашер | `crush` | Ловить «1» (+бит), «0» откатывает к чекпоинту 4/8/12 или ниже; 16 бит — победа; экран пикселится (`postFx`) | `chiptune` через квантователь `chipSh` = `boss.bits` |
-| 3 | Суперпила (Треугольник) | `chords` | Платформы-аккорды; приземлиться на аккорд, который она выпустила; атональный щит блокирует и «протекает» подсказкой | FM-ударные `drums` + офбит-бас |
-| 4 | Секвенсор | `seq` | «Саймон говорит» в центре экрана: такт СЛУШАЙ — он играет ритм на своих шагах (красные), такт ПОВТОРИ — повтори прыжками (каждое нажатие — удар, даже в воздухе). После ответа — такт-пауза для вердикта («ВЕРНО»/«ЕЩЁ РАЗ», сетка без плейхеда), чтобы надпись не мешала запоминать следующий вызов. Верно — +1, ошибка или пропуск — он играет то же ещё раз, ничего не отнимается. Два раунда по 3 ответа (`SEQ_RNDS`, `SEQ_NEED`): 4 шага четвертями, 8 восьмыми. Судит `seqJudge` по услышанной доле (`heardBeat`, поправка на `outputLatency`), окно ±40% шага; итог такта — `seqEvaluate` в планировщике на сильную долю | шаги секвенсора (вызов) и тихий метроном (ответ) + мелодия |
-| 5 | Wavetable | `harm` | Стреляет (`wtShoot`), в основном чередуя: красные — уклоняться (низ — прыжок, середина — фолд, верх — не прыгать); попадание возвращает в таблицу последнюю снятую гармонику (`wtRestore`), даже в бессмертии, зелёные — его следующая гармоника, ловить (`catchHarm`); 8 гармоник h9 → h2, потом чистый синус. Комплекс (`ally`) рядом гнёт его FM-ом | `dubstep`, слои уходят через `setDubLayers` |
-
-Чтобы добавить босса: запись в `BOSSES`, `boss:` у уровня, инициализация в `spawnBoss`, ветка `update*` в `updateBoss`, ветка в `drawBoss`, HUD в `render`, пункт в `#testSel`, реплики в `CAST`.
-
-### События и прогресс
-Каждое событие — крупно и с анимацией. `showPop(text, color, prio)` — самый крупный текст (влетает с увеличением, уплывает вверх): счёт партиалов «9/15», под конец «ЕЩЁ 3 / ЕЩЁ 2 / ЕЩЁ 1», «БОСС: КВАДРАТ» (имя босса уровня), потеря «−4 ◎» (приоритет 2 — не перебивается подбором 0,7 с). Диалог всегда на чистом экране: `story()` гасит поп, тост и баннер, а босс-диалог ждёт, пока догорит «БОСС: …». Тосты (`toast`) тоже крупные, заглавными, через `bigText` — шрифт ужимается под ширину экрана.
-
-Звук партиалов — лесенка (`partialLadder`, `ladderNote`): гамма текущего лада на две октавы, разложенная на число партиалов уровня; каждый подбор на ступень выше (`sfxPartial`), потеря — арпеджио вниз по тем же ступеням (`sfxPartialLoss`).
-
-Внизу экрана — полоса прогресса (`drawProgressBar`): на уровне зелёная, партиалы до ворот босса; в бою жёлтая, путь к победе (ШИМ, биты, шаги, снятые гармоники, удары). Плавно доезжает и вспыхивает при росте; при потере откатывается медленнее, а потерянный отрезок горит красным и гаснет (`barRed`, `redT`). Базовый шрифт HUD `fontPx` — до 17 px; на телефонах (`MOB`) всё крупнее (шрифт до 20 px, вызовы, тосты, карточки, реплики), а техничные надписи осциллографа (CH1, полутона, cyc, BPM) и формулы препятствий скрыты. Надписи держим короткими: подсказка — два-три слова, тост — одна мысль.
-
-### HUD боёв
-Главное — крупно и коротко: `bossCallout(main, sub, color, frac)` рисует одно крупное слово или число сверху по центру (ШИМ 64%, 9/16 БИТ, Am / ЩИТ, ШАГИ 3/5, СНИМИ h7), полосу прогресса и два-три слова под ней. Тосты в бою — крупные, заглавными, одна мысль. Меняющийся текст рисуется через `crispText`: под ним стирается послесвечение, старые слова не просвечивают.
-
-### Фон и послесвечение
-Послесвечение короткое: стирание `1 − e^(−70·dt)` за кадр в `render` — лёгкий след без ряби. У каждого уровня свой фон (`drawScenery`, стиль из `SCENES[level]`, в бесконечном режиме — по ладу `curMode`), всё — тусклые трассы с параллаксом, в боях фона нет:
-- L1 — хребет из суммы синусов и роща «деревьев-функций» (`drawTree`: роза r = cos kθ, колокол e^(−x²), ель из 1 − |x|, ива из sinc);
-- L2 — графы: узлы и рёбра над квантованным хребтом-лесенкой;
-- L3 — плывущие фигуры Лиссажу над пилообразным горизонтом;
-- L4 — фрактальные деревья (`fracBranch`) под хребтом-кривой Коха (`koch`);
-- L5 — вейвтейбл в 3D: стопка кадров, морф от синуса к пиле.
-
-### Сюжет
-`story(lines, done, scene)`. Строка — `[who, text, action?]`. Текст печатается по буквам, на каждую вторую букву щёлкает `keyClick` голосом из `CAST[who].pitch`, говорящий дрожит по-NES-овски (`shakeX`/`shakeY`). Под текстом — тёмная плашка, которую каждый кадр чистят до прозрачности (`destination-out`) и закрашивают заново: шлейфы послесвечения под буквами не копятся, текст остаётся чётким. На широких экранах колонка текста уже (48%), чтобы плашка не закрывала говорящих справа.
-
-Сцены с постановкой (вступление) используют `scene.actors` и действия `calm`/`arrive`/`capture`/`leave`. Оркестр вступления шлёт события нот (`sc.events`) — ноты над персонажами появляются синхронно со звуком.
-
-Сюжетная канва: Wavetable приводит цифру и забирает Треугольника, Меандра и Комплекса. Синуса не берут: «это просто тестовый сигнал». Меандра делают Квадратом, Треугольник сам становится Суперпилой, Комплекс почти поверил, что его время прошло.
-
-### Аудио-граф (главный голос)
-`osc (+ fmOsc → detune)` → `pre` → `shaper` (wavefold, `setDrive`) → `trim` → [`dryG` | выпрямитель `rectG`] → `env` → `crushSh` (биты) → `ringG` (ring mod) → `lp` → `master` → компрессор. Параллельно идёт дилей на `wet`.
-
-Отдельные шины:
-- бас `bass`;
-- дабстеп `dubA/dubB` → `dubF` (LFO-фильтр) → перегруз;
-- ШИМ-голоса `makePWM` (пила минус задержанная пила);
-- чиптюн `chipBus → chipSh`;
-- шумовая подложка `noiseBedG`.
-
-Вся музыка идёт через шину `music` → `musicLP` (low-pass) → `master`; эффекты (`tones`, `noise`, `sfxFM`, `chordSfx`, клавиши) — мимо фильтра. `musicFilter` анимирует фильтр длинными событиями: старт забега и уровня открывается из глухого (`startSweep`), ворота босса, появление и поражение босса — развёртка вверх; диалог, пауза, смерть, стоп-кадр онбординга — глуше; после удара — провал и восстановление вместе с неуязвимостью.
-
-Планировщик смотрит на 70 мс вперёд. Каждая шестнадцатая — `playStep(n, t)`, в нём выбирается трек по текущему состоянию.
-
-**Партия Синуса.** Не непрерывное арпеджио и не свободная мелодия, а жанровый мотив только из нот текущего аккорда (`MOTIFS[style]`, `chordTone`): всегда в гармонии, повторяется такт за тактом (A, B, A, B) и идёт за сменой аккордов. Стиль — тот же, что у `levelBand`: pop — восьмые с оттяжкой, chip — NES-пробежки, trance — оффбит-плаки вверх, glitch — заикания с паузами, modern — редкие плаки 3-3-2. Эхо Синуса по жанру (`STYLE_WET`). Голос по жанру (`SYN[style]` → `melNote`): ADSR громкости, `gate` (стаккато/легато), вспышка FM-индекса (`fmGain`, даёт синусу обертоны) и огибающая фильтра `lp` — от яркого к закрытому. Пока действует капсула, её тембр не перебивается. Басы и плаки оркестра (`bandVoice`) тоже с фильтр-огибающей и резонансом там, где это по жанру. Прыжок поднимает партию на октаву (+12/+24), фолд опускает. Капсула MDR заполняет паузы нотами аккорда.
-
-**Музыка уровней** (`levelBand`, стиль из `BAND[level]`, бесконечный режим — `modern`): под арпеджио Синуса играют пэды (`padNote`), бас (`bandVoice`) и ударные (`kick`, `hat`, `clap`) через шину `padBus`; `duck()` качает её от бочки.
-- L1 (Квадрат) — синтипоп: бочка/клэп, октавный бас восьмыми, квадратный пэд, стэбы;
-- L2 (Биткрашер) — намёк на чиптюн: треугольный бас и шумовые барабаны через `chipBus`, тонкий пульс-пэд;
-- L3 (Суперпила) — транс: прямая бочка, бас в слабую долю, открытые хэты, суперпила-пэд с «качанием»;
-- L4 (Секвенсор) — глитч: ломаная бочка с саб-ударами, заикания, цифровые щелчки, «зипы»;
-- L5 (Wavetable, F# Aeolian, F#m – D – A – E) и свобода — прогрессив-хаус в духе Avicii/SHM: прямая бочка с раскачкой, оффбит-хэты, катящийся бас, рубленые аккорды-стэбы 3-3-2, широкий пэд.
-В боях `levelBand` молчит (у боссов свои треки). Пока персонажи говорят на уровне, арпеджио тише, а оркестр уходит в брейкдаун — только пэд, чтобы были слышны «клавиши» (`keyClick`: щелчок шума + тон голоса октавой выше арпеджио).
-
-### Хранилище (`localStorage`, через `store`)
-- `osc-adv-best` — рекорд;
-- `osc-adv-unlocked` — открытые уровни;
-- `osc-adv-victory` — финал пройден;
-- `osc-adv-muted` — звук выключен;
-- `osc-adv-god` — бессмертие;
-- `osc-adv-tut` — какие шаги онбординга пройдены (`ground,ceil,tall`).
-
-## Аналитика
-Vercel Web Analytics — два тега в `<head>` (`window.va` и `/_vercel/insights/script.js`), только просмотры страниц. Включается один раз в проекте Vercel → Analytics → Enable. Свои события (`va('event', …)`) доступны только на платном тарифе. Speed Insights (Core Web Vitals) — два тега перед `</body>` (`window.si` и `/_vercel/speed-insights/script.js`); npm-пакет `@vercel/speed-insights` для сайта без сборки не нужен, включается в проекте Vercel → Speed Insights. CSP это пропускает: скрипт и отправка — с того же адреса.
-
-## Безопасность
-Внешнего ввода нет: ни форм, ни параметров адреса (только сравнение `#test`), ни сети. Всё, что идёт в `innerHTML`, — константы, числа или пропущено через `esc()`. `vercel.json` отдаёт заголовки: CSP (скрипты только свои и инлайн, стили и шрифты — ещё Google Fonts, без `object`, `base`, форм), `nosniff`, `Referrer-Policy`, `Permissions-Policy`. Подключаешь новый внешний источник — допиши его в CSP, иначе браузер его заблокирует.
-
-## Тестирование
-
-Ручная проверка: `#test` в адресе → «Тест: переход» к любому уровню или боссу, **G** — бессмертие. В автотестах без `#test` меню скрыто — вызывай `testJump('b4')` напрямую.
-
-Автопроверка — Playwright headless. Перед строкой `  showTitle();` вставить хук, чтобы видеть замыкание:
-
-```js
-window.T = { ev: (c) => eval(c) };
+```bash
+git clone <this repo> && cd osc-game
+python3 -m http.server 8000          # any static server works
+open http://localhost:8000/#test     # #test shows the level/boss jump menu
 ```
 
-Дальше `page.evaluate("T.ev('...')")`. Полезные приёмы:
-- прыгнуть в бой: выбрать пункт в `#testSel` и нажать `#testGo`, затем пропустить диалог через `storySkip()`;
-- проверить механику напрямую: `catchBit({val:1})`, `catchHarm({k:9})`, `landOn(pf)`, `seqJudge()`;
-- бот для честности ввода: `setInterval`, который смотрит только на то, что видит игрок (подсветку, подсказку), и вызывает `pressJump()`; считать засчитанные и незасчитанные попытки;
-- телефон: контекст `has_touch`, `is_mobile`, 390×844 и 844×390, касания через CDP `Input.dispatchTouchEvent`;
-- звук ушами не проверить: смотреть значения узлов (`env.gain.value`, `chipSh.curve`, `swBF.frequency.value`) и запускать Chromium с `--autoplay-policy=no-user-gesture-required`.
+Keys: **Space / ↑** jump (again in the air = double), **↓ / S** fold, **P** pause, **M** mute, **G** god mode
+(invulnerable, for testing), **F** full screen. On `localhost` and Vercel preview hosts the test menu is always on
+and every level is unlocked.
 
-Скриншоты тестов сохраняй в свою временную папку, не в репозиторий (на всякий случай есть `.gitignore`).
+## Checks — run before every PR
 
-Минимум перед деплоем: `node --check` на извлечённом основном скрипте (самый длинный `<script>`; первые два — аналитика), проход вступления, каждый босс через `#test`, отсутствие `pageerror`.
+```bash
+node tools/check.mjs                 # syntax-check the main script
+pip install playwright && python3 -m playwright install chromium   # once
+python3 tools/smoke.py               # opens the intro, every level, every boss, free play; fails on any page error
+python3 tools/smoke.py --shots /tmp/shots    # …and saves a screenshot of each
+```
 
-## Наследие и уборка
+Sound can't be checked by a script. If you change audio, say so in the PR and ask a human to listen.
 
-- От старой версии боя с Wavetable (индексы β и кнопка FM) остались неиспользуемые `updateFM`, `allyFM`, `fireFM`, `loseIndex`, `fmLit`, `setBattleFM`, `idxTokens`, платформы `kind:'fm'`, а от версии с вылетающими гармониками — `harmTokens`. Их можно удалить, проверив, что `harm`-бой не трогают.
-- `flash()` пустая — заглушка от старых экранных кнопок.
-- `BOSSES.dsq.atk` и `BOSSES.ssaw.atk` не вызываются (`noAtk`), но оставлены на случай атак.
+## Workflow
 
-## Открытые вопросы и идеи
+| Branch | Deploys to | Who pushes |
+|---|---|---|
+| `staging` | Vercel **preview** (its own URL) | contributors, via PRs |
+| `main` | **production** | maintainer only, by fast-forwarding `staging` after testing the preview |
 
-- Баланс: Квадрат — `SQ_STEP`, `SQ_CHAIN`, `SQ_RELAX`, `SQ_AIR`, `SQ_FINAL`, `SQ_WIN`, `SQ_FINAL_CHAIN`, шанс ловушки 0,18 (с 25% пути), ширина импульсов 60 → 36, прыжки наугад застревают. Секвенсор — `SEQ_RNDS` (узоры), `SEQ_NEED`, окно 0,4 шага; точный и «неряшливый» (опаздывает на треть шага) боты проходят за ~35 с, нажатия наугад — нет.
-- Выпрямитель (`rect`) реже: шанс вдвое ниже и не чаще раза на ~3000 единиц (`rectAt` в `spawn`).
-- Не проверены на слух: баланс чиптюна, раздевание дабстепа, синтвейв. Щелчки арпеджио и баса убраны плавными огибающими — проверить на слух.
-- Тексты реплик должны совпадать с механикой боёв: меняешь механику — проверь `intro` босса и подсказки.
-- В боях с треком босса прыжки не слышны как смена октавы — можно вплести октаву в сам трек.
-- Идеи из обсуждения: чекпоинт на середине уровня; при касании второго сайдбенда кольцевого модулятора — оглушение вместо смерти.
+1. Branch from `staging`, open the PR **into `staging`**. Never push to `main`.
+2. One concern per PR. In the description: what changed for the player, how you checked it (commands, screenshots),
+   what you could not check (usually: how it sounds).
+3. Keep `AGENTS.md` true: if you change a mechanic, a rule or a file layout, update the matching section here
+   in the same PR.
+4. Don't commit test screenshots or tool output (`.gitignore` covers the usual names).
+
+## Hard rules
+
+1. **One file, no build, no dependencies.** Fonts come from Google Fonts with system fallbacks. No npm packages at
+   runtime (analytics are plain `<script>` tags served by Vercel).
+2. **World units.** The world is 480 units wide, `GROUND = 238`, base height 300. `scale = cw / 480`; extra screen
+   height becomes sky (`offY`). Text is drawn in screen pixels via `text()` / `textScreen()` so it stays readable.
+3. **Colours are oscilloscope channels and carry meaning — don't repurpose them:**
+   CH1 yellow `#f4e15a` = the Sine (player) · CH2 cyan = ground functions · CH3 magenta = hanging functions ·
+   CH4 green = partials and "good" · red `#ff4d3d` = digital and danger (bosses, attacks, effect gates) ·
+   orange = Complex / FM · lavender = Triangle · gold = mode capsules.
+4. **Fair input.** Anything timing-based is judged at the moment of the press, against what the player *sees and
+   hears* (see `heardBeat()` — it compensates audio output latency). Hints sit where the player looks, not only in a HUD.
+5. **Boss fights:** no regular obstacles, no capsules. A boss with its own track mutes the Sine's part (`bossTrack`).
+6. **Music reflects the fight:** Square's duty drives the synthwave pulse width, Bitcrusher's bit depth quantises the
+   chiptune, Wavetable's stripped harmonics remove dubstep layers.
+7. **Mobile is first-class.** The page *is* the game on every device (`playMode` is on from the first frame).
+   Check new UI at 390×844 and 844×390. On phones (`MOB`) type is bigger and technical readouts are hidden.
+8. **Short words.** A hint is 2–3 words, a toast is one thought, a boss callout is one big word or number.
+9. **No clicks in audio.** Envelopes on a sounding voice use `setTargetAtTime` from the current value. A
+   `setValueAtTime` jump on a playing gain clicks (and the delay echoes it). Exception: the chiptune's stepped envelope.
+10. **The frame loop must never die:** `requestAnimationFrame` is the first line of `frame()`. All `localStorage`
+    access goes through the `store` wrapper (it can throw).
+11. **Phosphor look, crisp text.** The canvas fades by `1 − e^(−70·dt)` per frame (short trails). Text that changes
+    is drawn with `crispText()` / `bigText()` (wipes the phosphor under it); dialogue sits on `darkPlate()`.
+12. **Every new thing explains itself the first time** (`ob.hint` / `tagHint`).
+
+## Map of the script (in file order — line numbers drift, search by name)
+
+- **World constants** — `WORLD_W`, `GROUND`, `HERO_*`, `GRAV`, `JUMP_V`, `DJUMP_V`, `SPEED_MAX`, `MINC`, `COL`.
+- **Story data** — `CAST` (name, colour, wave, `digital`, `pitch` for key clicks), `OPENING`, `BOSSES` (`intro`/`outro` + fight params).
+- **Levels** — `LEVELS` (key, mode, bpm, speed, length, obstacle pools, `intro`, `boss`), `NEED` (partials to open the boss),
+  `STEPS` (scales), `MODES` (+3 free-play modes), `POWERS` (capsules MDR/TRI/CPX).
+- **Waves** — `waveVal(th, type, t)`: shared shapes for hero, sprites, capsules, bosses; `wtFrame`.
+- **Audio** — `initAudio`, scheduler `schedule` / `playStep`, voices and tracks (`orchestra`, `synthwave`, `drums`,
+  `chiptune`, `dubstep`, `levelBand`), the Sine's part (`MOTIFS`, `SYN`, `melNote`, `chordTone`), effects, `sfx*`, `musicFilter`.
+- **Obstacles** — `makeOb(kind, x)`; spawning — `spawn`, `tagHint`; reset — `reset`.
+- **Bosses** — `spawnBoss`, `hitBoss`, `bossDone`, then one block per boss (`updatePwm`, `updateCrush`, `updateChords`,
+  `seqRound`/`seqJudge`/`seqEvaluate`, `wtShoot`/`catchHarm`).
+- **Player** — `collide`, `pressJump`, `doJump`, `takeHit`, `givePower`, `start`, `levelUp`, `die`, `gameOver`, `pause`/`resume`.
+- **Onboarding** — `tutTick`, `bestTakeoff`, `drawTut`.
+- **Story engine** — `story`, `storyNext`, `storySkip`, opening scene (`makeOpening`, `runAct`, `sceneTick`).
+- **Overlay & HUD** — `showTitle`, `showOverlay('over'|'paused')`, `renderLevelChips`, `hud`.
+- **Input & layout** — keys, pointer on `#bezel`, `layoutPlay`, `enterPlayMode` / `exitPlayMode`, `toggleFs`.
+- **Update** — `update(dt)`, `updateBoss(dt)`.
+- **Drawing** — `trace` (two-pass glow), `drawScenery`, `drawBoss`, `drawSprite`, `drawStoryText`, `drawPartialGate`,
+  `bossCallout`, `drawProgressBar`, `render(dt)`, `postFx` (Bitcrusher pixelation).
+- **Loop** — `frame` (auto quality drop `lowQ` on weak phones), test menu `testJump`.
+
+## Systems
+
+### Hero and physics
+`y` = height of the wave's bottom above ground, `vy` positive up. Jump `JUMP_V`, double `DJUMP_V`, 0.13 s jump buffer.
+Fold (`foldHeld`) squeezes the amplitude `A_NORM → A_FOLD` and speeds up falling. Platforms (`platforms`) are shared
+by bosses: land from above, `standing`, walk off the edge, `landOn(pf)`.
+
+### Obstacles
+`makeOb` returns `{ w, h, label, prof(u) }`, `u ∈ [0,1]` across the width.
+Ground ones: `prof(u)` is a fraction of `h`. Hanging ones (`ground:false`): `prof(u)` is the gap above ground (≥ `MINC`).
+Animated ones read `beatPos` (synced to audio). Effect gates (`gate:'rect'|'ring'`) don't kill, they apply an effect
+(`applyFx`, state in `fx`). Tall walls never come twice in a row and leave room to land. Rectifier gates are rationed
+(`rectAt`). **To add one:** a `case` in `makeOb`, optionally a `hint`, then add the kind to a level's pool in `LEVELS`.
+
+### Partials = lives, and the Sonic-style pace
+Each level starts with `START_PARTIALS = 4`. A hit (`takeHit`) costs `HIT_COST = 4`; they scatter and can be caught
+back; 1.6 s invulnerability; a hit with none left ends the run. The same partials open the boss gate (`NEED[level]`).
+On a level with a boss, speed and obstacle density follow `levelPartials / NEED` — closer to the gate is faster, losing
+partials eases off; the music tempo follows speed.
+
+### Onboarding
+The first ground function, hanging function and tall wall slow the run to a freeze (`slow`, `update(dt * slow)`) exactly
+where the move works; a card says what to press; the press performs the move. `bestTakeoff` simulates the jump over
+the obstacle profile to find that point. Done steps are stored in `osc-adv-tut`.
+
+### Bosses
+`BOSSES[key]`: `who`, `hp`, `kind`, `y`, `tip`, `noAtk`, `ally`, `intro`, `outro`.
+
+| Level | Boss | `kind` | Mechanic | Music |
+|---|---|---|---|---|
+| 1 | Square (captured Meander) | `pwm` | Green pulse platforms; land → it collapses, duty `base` +6.5% (+2.5% in a chain); red inverted pulses are traps (−10%); he always pulls back to 50%; from 75% (`SQ_FINAL`) only an unbroken chain of `SQ_FINAL_CHAIN` counts; 97% wins | `synthwave`, pulse width = `duty` |
+| 2 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
+| 3 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
+| 4 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm), bar REPEAT (tap it back — every tap counts, even mid-air), verdict bar. Wrong → he plays it again, nothing lost. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
+| 5 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
+
+**To add a boss:** an entry in `BOSSES`, `boss:` on a level, init in `spawnBoss`, an `update*` branch in `updateBoss`,
+a branch in `drawBoss`, a `bossCallout` in `render`, a `progressNow` case, a `#testSel` option, lines in `CAST`.
+
+### HUD and feedback
+One big short line per fight (`bossCallout(main, sub, colour, frac)`). Events are big and animated: `showPop(text,
+colour, prio)` (partials "9/15", then "ЕЩЁ 3/2/1", "БОСС: …", "−4 ◎") and toasts via `bigText` (auto-fits the width).
+A progress bar runs along the bottom (`drawProgressBar`): partials towards the gate on a level, progress to the win in
+a fight; it blinks when the player holds < 4 partials; a loss rolls back with the lost stretch in red.
+A dialogue always starts on a clean screen (`story()` clears pops, toasts, banners).
+
+### Story
+`story(lines, done, scene)`; a line is `[who, text, action?]`. Letters type out with a key click per two letters
+(`keyClick`, pitch from `CAST[who].pitch`); the speaker shakes NES-style. Text sits on `darkPlate()`. The opening uses
+`scene.actors` and actions `calm` / `arrive` / `capture` / `leave`; its band (`orchestra`) sends note events so notes
+pop over the characters in time with the sound.
+
+### Audio
+Main voice: `osc (+ fmOsc → detune)` → `pre` → wavefold `shaper` → `trim` → [`dryG` | rectifier `rectG`] → `env` →
+`crushSh` (bits) → `ringG` (ring mod) → `lp` → **`music` bus** → `musicLP` → `master` → compressor; delay on `wet`.
+All music goes through `musicLP`; SFX (`tones`, `noise`, `sfxFM`, `chordSfx`, key clicks) bypass it. `musicFilter`
+animates it with long events (run start fade-in, gate/boss sweeps, muffled dialogue/pause/death, dip after a hit).
+
+- **Scheduler:** 70 ms look-ahead; every 16th note calls `playStep(n, t)`, which picks what plays from game state.
+- **The Sine's part:** short genre motifs built only from the current chord's tones (`MOTIFS[style]`, `chordTone`) —
+  always in harmony, repeating A/B bars. Its voice per genre (`SYN[style]` → `melNote`): amp ADSR, gate
+  (staccato/legato), an FM-index burst for harmonics, a closing low-pass envelope.
+- **Level band** (`levelBand`, style from `BAND[level]`): pads (`padNote`), bass/plucks with filter envelopes
+  (`bandVoice`), drums (`kick`/`hat`/`clap`) on `padBus`, pumped by `duck()`. L1 synth-pop · L2 chiptune hint ·
+  L3 trance · L4 glitch · L5 (F# minor) and free play: progressive house. Dialogue drops the band to a pad breakdown.
+- **Boss tracks:** `synthwave` (PWM via `makePWM`), `chiptune` (`chipBus → chipSh`), FM `drums`, `dubstep`.
+
+### Scenery
+`drawScenery`, style per level (`SCENES`): L1 function trees (rose, bell, |x| fir, sinc willow), L2 graph networks
+over a quantised ridge, L3 drifting Lissajous figures, L4 fractal trees under a Koch ridge, L5 a 3D wavetable.
+Hidden in boss fights.
+
+### Storage (`localStorage` via `store`)
+`osc-adv-best` (record), `osc-adv-unlocked`, `osc-adv-victory`, `osc-adv-muted`, `osc-adv-god`, `osc-adv-tut`.
+
+### Analytics, headers, security
+Vercel Web Analytics (`/_vercel/insights/script.js`) and Speed Insights (`/_vercel/speed-insights/script.js`) are
+plain script tags; they only work on Vercel (404 locally — harmless). `vercel.json` sends a CSP (scripts: self +
+inline; styles/fonts: self + Google Fonts; no objects, base, forms), `nosniff`, `Referrer-Policy`,
+`Permissions-Policy`. There is no external input (no forms, no URL params besides `#test`, no network): anything
+written to `innerHTML` is a constant, a number, or goes through `esc()`. **If you add an external source, add it
+to the CSP**, or browsers will block it.
+
+## Testing tricks
+
+`tools/smoke.py` shows the pattern: it injects `window.T = { ev: (c) => eval(c) }` before `  showTitle();` so a test
+can run code inside the game's closure: `T.ev("testJump('b3')")`, `T.ev('storySkip()')`, `T.ev('god = true')`.
+Useful entry points: `testJump('op'|'l0'..'l4'|'b0'..'b4'|'free')`, `catchBit({val:1})`, `catchHarm({k:9})`,
+`landOn(pf)`, `takeHit('x')`, `seqRound(boss, 1)`.
+
+**Balance by bot:** a `setInterval` that only looks at what a player sees and calls `pressJump()`. Compare a precise
+bot, a sloppy one (off by a third of a beat) and a random masher: good play should win, mashing should not.
+Phones: Playwright context with `has_touch`, `is_mobile`, 390×844 and 844×390. Audio: launch Chromium with
+`--autoplay-policy=no-user-gesture-required` and inspect node values (`env.gain.value`, `lp.frequency.value`).
+
+## Tuning knobs
+
+- Square: `SQ_STEP`, `SQ_CHAIN`, `SQ_RELAX`, `SQ_AIR`, `SQ_FINAL`, `SQ_FINAL_CHAIN`, `SQ_WIN`, trap chance, pulse width, spawn interval in `updatePwm`.
+- Sequencer: `SEQ_RNDS` (patterns per round), `SEQ_NEED`, window `0.4` of a step in `seqJudge`.
+- Levels: `LEVELS[i]` (`bpm`, `speed0`, `len`, `pTall`, `pCeil`, pools), `NEED`, the speed curve in `update` (`+140` at the gate).
+- Lives: `START_PARTIALS`, `HIT_COST`.
+
+## Known gaps and ideas
+
+- Not verifiable by script: the mix and the sound of every genre — always ask a human to listen.
+- Legacy, unused: `updateFM`, `allyFM`, `fireFM`, `loseIndex`, `fmLit`, `setBattleFM`, `idxTokens`, platforms `kind:'fm'`,
+  `harmTokens`, empty `flash()`, `BOSSES.*.atk` on bosses with `noAtk`. Safe to remove with care.
+- The page copy in `<footer>` / `.deck` is hidden on every device now; it's kept as accessible text and for `#test`.
+- Ideas: a mid-level checkpoint; a "stun" instead of a hit for the ring-mod sideband; a final scene after Wavetable.

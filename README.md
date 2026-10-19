@@ -1,7 +1,21 @@
-# Приключения осциллятора
+# Приключения осциллятора · Oscillator Adventures
 
-Синус бежит по экрану осциллографа, играет арпеджио и спасает аналоговые сигналы — Треугольника, Меандра и Комплекса — от цифровых форм во главе с Wavetable.
+Синус бежит по экрану осциллографа, поёт мелодию и спасает аналоговые сигналы — Треугольника, Меандра и Комплекса — от цифровых форм во главе с Wavetable. Прыжок поднимает мелодию на октаву, фолд опускает; препятствия — математические функции, а боссы — Квадрат, Биткрашер, Суперпила, Секвенсор и сам Wavetable.
 
-Один `index.html`, Canvas 2D + Web Audio, без сборки. Деплой — Vercel (статический сайт). Как устроен код и как его развивать — в [AGENTS.md](AGENTS.md).
+*A sine wave runs across an oscilloscope, sings, jumps over maths functions and fights digital waveforms. One static `index.html`, Canvas 2D + Web Audio, no build.*
 
-**Управление.** Телефон: держи левую половину экрана — фолд, тап справа — прыжок. Клавиатура: Пробел / ↑ — прыжок (ещё раз в воздухе — двойной), ↓ — фолд, P — пауза, M — звук, G — бессмертие. Тестовое меню уровней — `#test` в адресе.
+## Играть / Play
+
+Телефон: держи левую половину экрана — фолд, тап справа — прыжок. Клавиатура: Пробел / ↑ — прыжок (ещё раз в воздухе — двойной), ↓ — фолд, P — пауза, M — звук, F — полный экран.
+
+Локально / locally:
+
+```bash
+python3 -m http.server 8000   # then open http://localhost:8000/#test
+```
+
+## Разработка / Contributing
+
+Всё, что нужно человеку или агенту (Claude Code, Codex и др.), чтобы продолжить разработку, — в [AGENTS.md](AGENTS.md): как устроен код, правила, проверки, куда слать PR.
+
+Everything a contributor or coding agent needs is in [AGENTS.md](AGENTS.md). In short: branch from `staging`, run `node tools/check.mjs` and `python3 tools/smoke.py`, open the PR into `staging`.

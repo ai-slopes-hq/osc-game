@@ -1,4 +1,7 @@
-# local test screenshots
+# local test output
 desk*_*.png
 tut_*.png
 s[0-9]_*.png
+shots/
+__pycache__/
+node_modules/
