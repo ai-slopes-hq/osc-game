@@ -188,7 +188,7 @@ Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level do
 | Level | Boss | `kind` | Mechanic | Music |
 |---|---|---|---|---|
 | 1 | Square (captured Meander) | `pwm` | Green pulse platforms; land → it collapses, duty `base` +6.5% (+2.5% in a chain); red inverted pulses are traps (−10%); he always pulls back to 50%; from 75% (`SQ_FINAL`) only an unbroken chain of `SQ_FINAL_CHAIN` counts; 97% wins | `synthwave`, pulse width = `duty` |
-| 3 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates | `chiptune` through quantiser = bits |
+| 3 | Bitcrusher | `crush` | Catch "1" (+bit), "0" drops to checkpoint 4/8/12; 16 bits wins; screen pixelates. He comments in his own words (`bossSay`) instead of system toasts — «Двенадцать… кажется, ниже уже не будет.» | `chiptune` through quantiser = bits |
 | 5 | Supersaw (Triangle) | `chords` | Chord platforms; land on the chord she plays; an atonal shield blocks and "leaks" the next chord | FM drums + off-beat bass |
 | 7 | Sequencer | `seq` | "Simon says", centre screen: bar LISTEN (he plays a rhythm once), then every bar is REPEAT (tap it back — every tap counts, even mid-air) until it's right; the rhythm stays shown as a reference row above his steps, so you can sit a bar or two out and come in. Wrong → just try the next bar, nothing lost; right → a rest bar shows the next rhythm, then his call. Two rounds × 3 answers (`SEQ_RNDS`, `SEQ_NEED`), ±40% window on the heard beat | his steps + metronome |
 | 10 | Wavetable | `harm` | Shoots, mostly alternating: dodge red (low → jump, mid → fold, high → stay), catch green = his next harmonic (h9 → h2); a red hit puts one back; Complex (ally) bends him with FM | `dubstep`, layers drop per harmonic |
@@ -199,7 +199,7 @@ Mini-bosses (`mini:true`, all in `updateMini` / `drawMini` / `arpLand`; the leve
 | Level | Mini-boss | Mechanic |
 |---|---|---|
 | 2 | Compressor `comp` | His threshold line drops on every downbeat (`compThr(compPhase())`), flashing a beat ahead — fold under it; between pumps catch green peaks (6). No hint text: the line says it |
-| 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles. No hint text: lit bricks say it |
+| 4 | Limiter `lim` | A 0 dBFS ceiling (`LIM_CEIL`) caps jumps; bricks float overhead — headbutt them while they're lit, on the skank (beats 2 and 4); off the beat you bounce. He also rolls ground obstacles. Hint: «бей кирпичи, пока зелёные» |
 | 6 | Arpeggiator `arp` | He jumps for you on every beat (manual jump is off); hold fold to skip a jump. Green notes up high — let him jump; red notes up high — hold; green notes on the ground — hold to stay down. 8 greens; a red costs 2 partials |
 | 9 | Reverberator `rvb` | Every jump (ground or double) claps a reflection at him (`rvbClap`, 0.45 s cooldown), aimed ±24°. A miss bounces off the walls, ceiling and floor (`updateRvb`, `b.shots`), turns red and hurts you (2 partials) until it decays; his RT60 (`b.decay`, 1.5–3.8 s) drifts — long decay, more bounces. Mashing fills the room with your own echoes |
 | 8 | Vocoder `voc` | Hold fold to breathe in (a ring fills over the Sine), let go to sing at him — it lands only while his mouth of band bars is open (briefly on beats 2 and 4). His syllables roll in: low — jump, chest-high — stay folded |

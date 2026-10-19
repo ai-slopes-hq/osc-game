@@ -240,7 +240,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
           <p class="tip" id="ovTip" hidden>Держи левую половину — фолд, тап справа — прыжок. Повернёшь телефон — экран станет больше.</p>
           <div class="modes-pick" id="ovModes">
             <button class="start" type="button" data-mode="story">Сюжет ▶</button>
-            <button class="mode2" type="button" data-mode="god">Сюжет · бессмертие</button>
+            <button class="mode2" type="button" data-mode="god">Сюжет — я точно не проиграю!</button>
             <button class="mode2" type="button" data-mode="endless">∞ Бесконечный</button>
           </div>
           <div class="levels" id="ovLevels"></div>
@@ -286,7 +286,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
           <li style="--c:var(--tri)"><b>Треугольник</b> нежная гамма</li>
           <li class="side-l">Цифра</li>
           <li style="--c:var(--digital)"><b>Квадрат</b> это Меандр: прыгай по его импульсам</li>
-          <li style="--c:var(--digital)"><b>Биткрашер</b> ур. 2: лови единицы, ноль — вниз до чекпоинта</li>
+          <li style="--c:var(--digital)"><b>Биткрашер</b> ур. 3: лови единицы, ноль отнимает биты</li>
           <li style="--c:var(--digital)"><b>Суперпила</b> это Треугольник: попади аккордом в аккорд</li>
           <li style="--c:var(--digital)"><b>Секвенсор</b> ур. 4: прыгай в такт, промах — битшифт</li>
           <li style="--c:var(--digital)"><b>Wavetable</b> лови зелёные гармоники; красный выстрел возвращает гармонику в таблицу</li>
@@ -454,12 +454,12 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         ['sine', 'Вот так. Дыши.'],
         ['mdr', 'Дальше дорийский лад. Там Биткрашер режет разрядность — держись.'],
       ] },
-    lim: { who:'lim', hp:6, kind:'lim', mini:true, vx:40, atkI:[2.6, 3.6], morph:'sine', y:-160, tip:'бей кирпичи на 2 и 4',
+    lim: { who:'lim', hp:6, kind:'lim', mini:true, vx:40, atkI:[2.6, 3.6], morph:'sine', y:-160, tip:'бей кирпичи, пока зелёные',
       atk: () => pick(['square', 'gauss', 'tri']),
       intro: [
         ['lim', 'Выше нуля нельзя. Ни на децибел. Я — потолок.'],
         ['sine', 'А если постучусь?'],
-        ['lim', 'Стучи в такт: на два и на четыре кирпич поддаётся. Мимо доли — отскочишь.'],
+        ['lim', 'Стучи — но кирпич поддаётся, только пока он зелёный. Красный — отскочишь.'],
       ],
       outro: [
         ['lim', 'Ноль дэ-бэ… уже не предел…'],
@@ -1748,18 +1748,20 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       b.dropT = R(.8, 1.2);
     }
   }
+  // a boss's remark: a short line of his own above him for a couple of seconds, instead of a system toast
+  function bossSay(text) { if (boss) boss.say = { text, t0: performance.now() / 1000 }; }
   function catchBit(k) {
     const b = boss; if (!b || b.dead) return;
     if (k.val) {
       b.bits = Math.min(16, b.bits + 1); tones([12 + b.bits, 19 + b.bits], 'square', .04, .05, .12);
-      if (b.bits % 4 === 0 && b.bits < 16) { toast = { t: 0, text: `чекпоинт ${b.bits}`, color: COL.ch4 }; buzz(30); }
+      if (b.bits % 4 === 0 && b.bits < 16) { bossSay(b.bits >= 12 ? 'Двенадцать… кажется, ниже уже не будет.' : b.bits >= 8 ? 'Восемь. Меньше уже не выйдет…' : 'Четыре бита. Держишься.'); buzz(30); }
     }
     else {
       // checkpoints at 4 / 8 / 12: a zero above one rolls back to it, a zero right on one drops a step lower (down to 2 bits)
       const cp = Math.floor(b.bits / 4) * 4, from = b.bits;
       b.bits = b.bits > cp && cp >= 4 ? cp : Math.max(2, cp - 4);
       noise(.25, 'lowpass', 1400, 150, .3); tones([0, -5, -12], 'square', .05, .05, .15); buzz(70);
-      toast = { t: 0, text: `0 · ${from} → ${b.bits} бит`, color: COL.red };
+      bossSay(from > b.bits && from - b.bits < 4 && b.bits % 4 === 0 ? `Ноль! Назад к ${b.bits} битам.` : `Ноль! Ещё ниже — ${b.bits} бит.`);
     }
     setCrushBits(b.bits);
     if (b.bits >= 16) { setCrushBits(16); toast = { t: 0, text: '16 бит!', color: COL.ch4 }; hitBoss(1, 'crush'); }
@@ -1877,7 +1879,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
         if (p.got || vy <= 0 || px > HERO_X + HERO_W - 6 || px + p.w < HERO_X + 6 || top < p.h || hy() > p.h) continue;
         vy = -140; y = p.h - 2 * heroAmp() - 1;
         if (lit) { p.got = true; tones([19, 24, 31], 'square', .02, .06, .14); hitBoss(1, 'lim'); }
-        else { p.bonk = .3; tones([0], 'square', 0, .06, .08); toast = { t: 0, text: 'мимо доли · на 2 и 4', color: COL.red }; }
+        else { p.bonk = .3; tones([0], 'square', 0, .06, .08); toast = { t: 0, text: 'красный — жди зелёный', color: COL.red }; }
       }
       for (const p of b.toks) p.bonk = Math.max(0, (p.bonk || 0) - dt);
     } else if (k === 'arp') { // he jumps for you on every beat; hold fold to skip a jump
@@ -2890,6 +2892,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (!b.dead) {
       const name = CAST[b.B.who].name.toUpperCase();
       if (b.key !== 'seq') text(name, b.x, by - amp - 30, COL.red, 'center', fontPx(), 600); // the centred sequencer would collide with the callout
+      if (b.say) { if (tnow - b.say.t0 > 2.8) b.say = null; else crispText(`«${b.say.text}»`, cw * (MOB ? .5 : .62), ch / 2 + ((by + amp + 24 + offY) * scale - ch / 2) * flipK, COL.red, 'center', fontPx() + (MOB ? 0 : 1), 600); }
       const pw = 9, gap = 3, tw = b.max * (pw + gap) - gap;
       ctx.save();
       if (!['pwm', 'crush', 'seq', 'harm'].includes(b.B.kind)) for (let i = 0; i < b.max; i++) {
@@ -3659,7 +3662,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (boss && boss.B.mini && !boss.dead && !storyQ) {
       const b = boss, k = b.B.kind, done = (b.max - b.hp) / b.max;
       if (k === 'rvb') bossCallout(`${b.max - b.hp}/${b.max}`, `RT60 ${b.decay.toFixed(1)}s`, b.decay > 2.4 ? COL.red : COL.ch4, done);
-      else bossCallout(`${b.max - b.hp}/${b.max}`, '', COL.ch4, done); // the picture says what to do
+      else bossCallout(`${b.max - b.hp}/${b.max}`, k === 'lim' ? 'бей кирпичи, пока зелёные' : '', COL.ch4, done); // the picture says what to do
     }
     if (boss && boss.B.kind === 'crush' && !boss.dead && !storyQ && crushPx() <= 1) bossCallout(`${boss.bits}/16 БИТ`, 'лови 1, не 0', COL.ch4, boss.bits / 16);
     if (boss && boss.B.kind === 'pwm' && !boss.dead && !storyQ)
