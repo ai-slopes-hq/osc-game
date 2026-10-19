@@ -1563,8 +1563,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     Object.assign(b, { round: r, N: R.N, rate: R.rate, done: 0, flash: Array(R.N).fill(0), qBar: null, pat: pick(R.pats), ans: new Set(), wrong: false, said: '' });
   }
   const seqBar = () => Math.floor(heardBeat() / 4);
-  function seqPhase(b) { // 'call' | 'answer' | null (waiting for the first bar)
+  function seqPhase(b) { // 'call' | 'answer' | 'rest' (the verdict bar before a call) | null
     if (b.qBar === null) return null;
+    if (seqBar() - b.qBar === -1) return 'rest';
     const rel = seqBar() - b.qBar;
     return rel === 0 ? 'call' : rel === 1 ? 'answer' : rel < 0 ? null : 'judge';
   }
@@ -1583,7 +1584,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       }
       showPop('ВЕРНО', COL.ch1); b.pat = pick(SEQ_RNDS[b.round].pats.filter(p => p !== b.pat));
     } else { showPop('ЕЩЁ РАЗ', COL.red); b.hitT = .2; }            // same rhythm again, nothing lost
-    b.ans = new Set(); b.wrong = false; b.qBar = bar;                   // this bar is the next call
+    b.ans = new Set(); b.wrong = false; b.qBar = bar + 1;               // this bar is a rest for the verdict; the next call comes after it
   }
   function seqJudge() { // called at take-off
     const b = boss; if (!b || b.dead || b.t < 1.4 || b.qBar === null) return;
@@ -2315,7 +2316,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       trace(q, col, 2.2, alpha);
     } else if (b.key === 'seq') {
       const N = b.N || 4, cwid = N > 4 ? 30 : 46, gap = N > 4 ? 7 : 10, tw = N * cwid + (N - 1) * gap, sx = b.x - tw / 2;
-      const ph = b.dead ? null : seqPhase(b), barF = heardBeat() / 4, cur = Math.floor(frac(barF) * N); // the step you hear now
+      const ph0 = b.dead ? null : seqPhase(b), ph = ph0 === 'rest' ? null : ph0, barF = heardBeat() / 4, cur = Math.floor(frac(barF) * N); // the step you hear now
       for (let i = 0; i < N; i++) {
         const xx = sx + i * (cwid + gap), inPat = b.pat && b.pat.includes(i), got = b.ans && b.ans.has(i);
         const q = [xx, by - 18, xx + cwid, by - 18, xx + cwid, by + 18, xx, by + 18, xx, by - 18];
@@ -2981,7 +2982,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (god) textScreen('GOD', cw / 2, ch - pad - fp / 2 - 8, COL.ch4, 'center', fp, 600);
     if (state === 'play' && (boss || victoryRun)) textScreen(`◎ ${levelPartials}`, pad, pad + fp * 1.9, levelPartials ? COL.ch4 : COL.red, 'left', fp + 1, 700);
     if (boss && boss.B.kind === 'seq' && !boss.dead && !storyQ)
-      bossCallout(seqPhase(boss) === 'answer' ? 'ПОВТОРИ' : 'СЛУШАЙ', `раунд ${boss.round + 1}/2 · ${boss.done}/${SEQ_NEED}`, seqPhase(boss) === 'answer' ? COL.ch1 : COL.red, boss.done / SEQ_NEED);
+      { const ph = seqPhase(boss); bossCallout(ph === 'answer' ? 'ПОВТОРИ' : ph === 'call' ? 'СЛУШАЙ' : '···', `раунд ${boss.round + 1}/2 · ${boss.done}/${SEQ_NEED}`, ph === 'answer' ? COL.ch1 : ph === 'call' ? COL.red : COL.dim, boss.done / SEQ_NEED); }
     if (boss && boss.B.kind === 'chords' && !boss.dead && !storyQ) {
       if (boss.mode === 'chord') bossCallout(boss.chord, `прыгай на ${boss.chord}`, COL.tri, boss.modeT / 3.4);
       else bossCallout('ЩИТ', 'жди', COL.red);
