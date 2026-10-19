@@ -160,10 +160,11 @@ alternate with genre levels that end in a mini-boss; **Wavetable is always the l
 | 8 | C Ionian | ambient (no drums, a breather) | `aurora` | sparse, resonant peaks, phase invert | *Vocoder* |
 | 9 | F# Aeolian | modern (progressive house) | `wt` | everything (`ALL_G`/`ALL_C`) | Wavetable |
 
-Two levels build up to their boss gradually, with `levelPartials / NEED`: on level 2 (techno) the screen is squeezed
+Three levels build up to their boss gradually, with `levelPartials / NEED`: on level 2 (techno) the screen is squeezed
 from the sides and pumps on the kick (`drawSqueeze`, `sqz`; up to 46/120 units) and lets go when the Compressor
 appears; on level 3 (chip) the bit depth falls 16 → 8 (`trackBits`, `lvlBits`) — the Sine's voice crushes and the
-screen pixelates (`crushPx`, `postFx` redraws the gate counter crisp), right into the Bitcrusher's 8-bit fight.
+screen pixelates (`crushPx`, `postFx` redraws the gate counter crisp), right into the Bitcrusher's 8-bit fight. On level 5 (trance) the Sine's melody detunes wider
+(`trackUni`: two copies `uni` fade in at ±6 → ±46 cents) and the hero grows drifting ghosts — a supersaw out of a sine.
 
 Free play runs on level 9; mode capsules switch mode, genre and scene together (`MODES[i].band/.scene`, `bandNow()`).
 Difficulty formulas scale by `level / (LEVELS.length - 1)`, so adding a level doesn't break the curve.

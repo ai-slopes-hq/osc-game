@@ -616,7 +616,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   let dryG, rectG, ringG, ringOsc, ringDepth, crushSh, crushBits = 16, chipBus, chipSh;
   let dubA, dubB, dubF, dubLfo, dubG, dubOn = false, dubRate = 0, dubLfoG, dubBG, dubRem = 8;
   let pwmLfo, pwmBass, pwmPad = [], pbG, padG, swOn = false;
-  let dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
+  let uni = [], oscG, uniK = 0, uniSet = -1, dubIn, musicHP, fbOsc, fbG, music, musicLP, lpNow = 18000, lpSweep = null, swBF, swPF, dubFmOsc, dubFmG, noiseBedG, fmRatio = 2, battleFM = 0, swT = 0, padBus, bandOn = false;
   let ac = null, master, osc, fmOsc, fmGain, pre, trim, env, lp, wet, bass, bassEnv, muted = store.get('osc-adv-muted', '0') === '1';
   const hz = s => 220 * Math.pow(2, s / 12);
   let playing = false, nextT = 0, stepN = 0, octave = 0, noteLog = [], lastDrive = 1, musicMode = 0, curMode = 0, barBase = 0, curWave = 'sine', bossMusic = false;
@@ -659,7 +659,9 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     rectSh.curve = rc;
     ringG = ac.createGain(); ringOsc = ac.createOscillator(); ringOsc.frequency.value = 287; ringDepth = ac.createGain(); ringDepth.gain.value = 0;
     ringOsc.connect(ringDepth); ringDepth.connect(ringG.gain); ringOsc.start();
-    osc.connect(pre); pre.connect(shaper); shaper.connect(trim);
+    oscG = ac.createGain(); osc.connect(oscG); oscG.connect(pre); pre.connect(shaper); shaper.connect(trim);
+    // two detuned copies of the Sine's voice, silent until the Supersaw's level pulls them in (trackUni)
+    uni = [-1, 1].map(sg => { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = 220; g.gain.value = 0; fmGain.connect(o.detune); o.connect(g); g.connect(pre); o.start(); return { o, g, sg }; });
     trim.connect(dryG); dryG.connect(env); trim.connect(rectSh); rectSh.connect(rectG); rectG.connect(env);
     // chiptune bus for the Биткрашер fight: every voice goes through a quantiser set to the boss's bit depth
     chipBus = ac.createGain(); chipSh = ac.createWaveShaper();
@@ -735,7 +737,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     if (!ac || !playing) return;
     while (nextT < ac.currentTime + .07) { playStep(stepN, nextT); nextT += stepDur(); stepN++; }
   }
-  function setFreq(semi, t) { osc.frequency.setValueAtTime(hz(semi), t); fmOsc.frequency.setValueAtTime(hz(semi) * fmRatio, t); }
+  function setFreq(semi, t) { osc.frequency.setValueAtTime(hz(semi), t); fmOsc.frequency.setValueAtTime(hz(semi) * fmRatio, t); for (const u of uni) u.o.frequency.setValueAtTime(hz(semi), t); }
   // Wavetable fight: the cells you have knocked out become the FM index on the battle music. 9 of 10 is near-noise.
   // Wavetable fight: every harmonic you strip takes a layer out of the dubstep until a pure sine bass is left
   function setDubLayers(rem) {
@@ -1113,7 +1115,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     curWave = type;
     if (!ac) return;
     const w = WAVES[type], t = ac.currentTime;
-    osc.type = w.osc;
+    osc.type = w.osc; for (const u of uni) u.o.type = w.osc;
     trim.gain.setTargetAtTime(w.trim, t, .01);
     lp.frequency.setTargetAtTime(w.lp, t, .02);
     wet.gain.setTargetAtTime(Math.max(w.wet, STYLE_WET[styleNow] || 0), t, .05);
@@ -1363,7 +1365,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   const COL_MODE = '#ffd27a';
 
   function reset() {
-    afterGlide = false; lvlBits = 16; sqz = 0;
+    afterGlide = false; lvlBits = 16; sqz = 0; uniK = 0;
     const L = LEVELS[level];
     dist = 0; speed = L.speed0; y = 0; vy = 0; onGround = true; buffer = 0; airJumps = 0;
     obstacles = []; pickups = []; pills = []; beams = []; modeCaps = []; nextX = WORLD_W + 70; deathT = 0;
@@ -1704,6 +1706,16 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
   function approachBits() {
     if (LEVELS[level].band !== 'chip' || victoryRun || boss || state === 'over' || state === 'dying') return 16;
     return Math.round(16 - 8 * (bossPending ? 1 : clamp(levelPartials / NEED[level], 0, 1)));
+  }
+  // Level 5 (trance, the Supersaw's): the closer her gate, the wider the Sine's melody detunes — two copies drift
+  // ±6 → ±46 cents and fade in, a supersaw growing out of a sine. The hero is drawn with the same ghosts.
+  function trackUni(dt) {
+    const tgt = LEVELS[level].band === 'trance' && !victoryRun && !boss && state !== 'over' ? (bossPending ? 1 : clamp(levelPartials / NEED[level], 0, 1)) : 0;
+    uniK += (tgt - uniK) * (1 - Math.exp(-dt * 1.5));
+    if (!ac || !uni.length || Math.abs(uniK - uniSet) < .01) return;
+    uniSet = uniK; const t = ac.currentTime, mix = .75 * uniK, det = 6 + 40 * uniK;
+    oscG.gain.setTargetAtTime(1 / (1 + 1.4 * mix), t, .1);
+    for (const u of uni) { u.g.gain.setTargetAtTime(mix / (1 + 1.4 * mix), t, .1); u.o.detune.setTargetAtTime(u.sg * det + glideC, t, .1); }
   }
   function trackBits() {
     const nb = approachBits(); if (nb === lvlBits) return;
@@ -2374,7 +2386,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (fx.inv > 0) { fx.inv -= dt; if (fx.inv <= 0) setInv(false); }
       if (fx.snh > 0) { fx.snh -= dt; const st = Math.floor(heardBeat() * 2); if (st !== snhStep) { snhStep = st; snhY = y; } if (fx.snh <= 0) setSnh(false); } // the Sine is sampled on every 8th
       rhythmT = Math.max(0, rhythmT - dt);
-      trackBits();
+      trackBits(); trackUni(dt);
       // living obstacles: feedback grows once it's on screen, the DC snake's offset drifts with the bar, echoes ping as they pass
       let fbMax = 0, nfNear = false;
       for (const ob of obstacles) {
@@ -2398,7 +2410,7 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       if (onGround && !standing && y < 1) { const g = platforms.find(pf => pf.kind === 'glide' && pf.h < 9 && HERO_X + HERO_W - 10 > pf.x - dist && HERO_X + 10 < pf.x - dist + pf.w); if (g) { standing = g; y = g.h; } }
       const gl = standing && standing.kind === 'glide' ? clamp((HERO_X + HERO_W / 2 - (standing.x - dist)) / standing.w, 0, 1) : 0;
       if (gl) speed = Math.min(SPEED_MAX + 70, speed + 260 * dt); // a natural booster
-      const gc = Math.round(gl * 700); if (ac && gc !== glideC) { glideC = gc; osc.detune.setTargetAtTime(gc, ac.currentTime, gc ? .05 : .2); } // portamento up the ramp
+      const gc = Math.round(gl * 700); if (ac && gc !== glideC) { glideC = gc; uniSet = -1; osc.detune.setTargetAtTime(gc, ac.currentTime, gc ? .05 : .2); } // portamento up the ramp
       const over = pf => HERO_X + HERO_W - 10 > pf.x - dist && HERO_X + 10 < pf.x - dist + pf.w;
       if (onGround && standing && (standing.kind === 'pulse' || standing.kind === 'glide')) y = standing.h; // ride a falling pulse or a ramp
       if (onGround && standing && !over(standing)) { const launch = standing.kind === 'glide'; standing = null; onGround = false; vy = launch ? 430 : 0; airJumps = 1; } // walked off a platform (a ramp launches you)
@@ -3358,6 +3370,11 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       hp.push(HERO_X + hsx + i, cy - s);
     }
     trace(hp, hc, 2.1, invulnT > 0 && Math.floor(invulnT * 14) % 2 ? .25 : 1);
+    if (uniK > .03 && state === 'play') for (const sg of [-1, 1]) { // detuned ghosts drifting out of phase (Supersaw's level)
+      const off = sg * uniK * (.5 + .5 * Math.sin(tnow * (1 + uniK * 3) + sg)), q = [];
+      for (let i = 0; i <= HERO_W; i += 1) { const u = i / HERO_W, win = Math.sin(Math.PI * u); q.push(HERO_X + hsx + i, cy - Math.sin(2 * Math.PI * cycles * u - phase + off * 2.2) * amp * win); }
+      trace(q, hc, 1.2, .4 * uniK);
+    }
     if (shadow && state === 'play') { // the echo's shadow: you, half a second late, closing in
       const scy = GROUND - shadow.y - heroAmp(), q = [], fade = Math.min(1, (7 - shadow.t) / .8);
       for (let i = 0; i <= HERO_W; i += 1) { const u = i / HERO_W, win = Math.sin(Math.PI * u); q.push(shadow.x + i, scy - Math.sin(2 * Math.PI * 1.5 * u - phase + 1) * heroAmp() * win); }
