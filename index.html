@@ -2473,9 +2473,8 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
     const plateW = Math.min(cw, textW + pad * 2 + 8), plateH = top + fp * 1.9 + wl.length * bodyPx * 1.42 + fp * 1.6 + 8;
     const plate = darkPlate;
     plate(0, 0, plateW, plateH);
-    ctx.font = `500 ${fp - 1}px "IBM Plex Mono", ui-monospace, monospace`;
-    const skW = ctx.measureText('пропустить ⏭').width + pad * 2;
-    if (cw - skW > plateW) plate(cw - skW, top - fp, skW, fp * 3);
+    const SK = MOB ? clamp(cw / 11, 34, 48) : 30, skW = SK * 1.5 + pad * 2; // the skip button: a big ⏭ glyph, drawn as shapes
+    if (cw - skW > plateW) plate(cw - skW, top - SK * .4, skW, SK * 1.8);
     ctx.font = `${c.nar ? 'italic ' : ''}400 ${bodyPx}px "IBM Plex Sans", system-ui, sans-serif`;
     ctx.textBaseline = 'top'; ctx.textAlign = 'left';
     if (!c.nar) {
@@ -2503,10 +2502,12 @@ body.at-title .mscore{visibility:hidden}body.at-title #mPause{display:none}
       ctx.fillText(last ? '▶ тап или пробел — поехали' : '▶ тап или пробел', pad, top + fp * 1.9 + lines.length * lh + 6);
       ctx.globalAlpha = 1;
     }
-    ctx.textAlign = 'right'; ctx.fillStyle = COL.dim;
-    const sk = 'пропустить ⏭', sw = ctx.measureText(sk).width;
-    ctx.fillText(sk, cw - pad, top);
-    skipRect = [cw - pad - sw - 12, top - 10, cw, top + fp + 10];
+    // fast-forward ▶▶| — vector, so it never turns into a coloured emoji; the tap target is bigger than the glyph
+    const gx1 = cw - pad, gx0 = gx1 - SK * 1.5, gy = top + SK * .5, gh = SK * .62, tw2 = SK * .62;
+    ctx.fillStyle = 'rgba(222,218,209,.82)'; ctx.beginPath();
+    for (const ox of [gx0, gx0 + tw2]) { ctx.moveTo(ox, gy - gh / 2); ctx.lineTo(ox + tw2, gy); ctx.lineTo(ox, gy + gh / 2); ctx.closePath(); }
+    ctx.rect(gx0 + tw2 * 2 + SK * .04, gy - gh / 2, SK * .14, gh); ctx.fill();
+    skipRect = [gx0 - 16, gy - SK * .9, cw, gy + SK * .9];
     ctx.restore();
   }
 
